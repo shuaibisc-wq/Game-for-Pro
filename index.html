@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Catch Shuaib!</title>
+    <style>
+        body { text-align: center; font-family: 'Arial', sans-serif; background: #ffe6f2; margin: 0; overflow: hidden; touch-action: none; }
+        #game-container { position: relative; width: 100vw; height: 80vh; margin-top: 10px; }
+        canvas { background: #e6fff2; display: block; width: 100%; height: 100%; border-top: 5px solid #ff99cc; border-bottom: 5px solid #ff99cc; }
+        #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; }
+        button { padding: 15px 30px; font-size: 20px; background: #ff66b2; color: white; border: none; border-radius: 50px; cursor: pointer; box-shadow: 0 4px #cc0066; }
+        button:active { transform: translateY(4px); box-shadow: none; }
+        .stats { font-weight: bold; color: #ff3399; font-size: 1.2rem; }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div id="overlay">
+            <h2 id="msg-title">🍦 Shuaib is running away!</h2>
+            <p>Tap the screen to move Prova and catch him!</p>
+            <button onclick="startGame()">Start Game! 🌸</button>
+        </div>
+    </div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const overlay = document.getElementById('overlay');
+    const msgTitle = document.getElementById('msg-title');
+
+    // Adjust canvas resolution for mobile
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight * 0.8;
+
+    let gameActive = false;
+    let startTime;
+    let prova = { x: 50, y: 50, targetX: 50, targetY: 50, size: 40, speed: 5 };
+    let shuaib = { x: canvas.width-60, y: canvas.height-60, size: 40, dx: 2, dy: 2 };
+
+    function startGame() {
+        overlay.style.display = 'none';
+        gameActive = true;
+        startTime = Date.now();
+        requestAnimationFrame(gameLoop);
+    }
+
+    // Touch/Mouse Controls
+    canvas.addEventListener('pointerdown', e => {
+        prova.targetX = e.clientX;
+        prova.targetY = e.clientY - canvas.offsetTop;
+    });
+
+    function update() {
+        if (!gameActive) return;
+
+        // Move Prova towards tap location
+        let dx = prova.targetX - prova.x;
+        let dy = prova.targetY - prova.y;
+        let angle = Math.atan2(dy, dx);
+        if (Math.hypot(dx, dy) > 5) {
+            prova.x += Math.cos(angle) * prova.speed;
+            prova.y += Math.sin(angle) * prova.speed;
+        }
+
+        // Shuaib bounces around
+        shuaib.x += shuaib.dx; shuaib.y += shuaib.dy;
+        if (shuaib.x <= 0 || shuaib.x >= canvas.width - 40) shuaib.dx *= -1;
+        if (shuaib.y <= 0 || shuaib.y >= canvas.height - 40) shuaib.dy *= -1;
+
+        // Check if caught
+        if (Math.hypot(prova.x - shuaib.x, prova.y - shuaib.y) < 40) {
+            victory();
+        }
+    }
+
+    function victory() {
+        gameActive = false;
+        let time = ((Date.now() - startTime) / 1000).toFixed(2);
+        overlay.innerHTML = `
+            <h2 style="color:#ff3399">🌸 YOU GOT HIM! 🌸</h2>
+            <div style="font-size:60px">🐱🍦</div>
+            <p class="stats">Time: ${time}s</p>
+            <button onclick="location.reload()">Play Again</button>
+        `;
+        overlay.style.display = 'flex';
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.font = "40px Arial";
+        ctx.fillText("🙋‍♂️🍦", shuaib.x, shuaib.y);
+        ctx.fillText("👸", prova.x, prova.y);
+    }
+
+    function gameLoop() {
+        update(); draw();
+        if (gameActive) requestAnimationFrame(gameLoop);
+    }
+</script>
+</body>
+</html>
