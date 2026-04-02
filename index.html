@@ -3,45 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>For Prova, From Shuaib</title>
+    <title>Catch Shuaib: Prova's Quest</title>
     <style>
-        * { touch-action: none; user-select: none; box-sizing: border-box; }
-        body { text-align: center; font-family: 'Segoe UI', Tahoma, sans-serif; background: #fff0f6; margin: 0; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
-        #game-container { position: relative; flex-grow: 1; width: 100%; background: linear-gradient(to bottom, #ffdde1, #ee9ca7); overflow: hidden; }
+        * { touch-action: none; user-select: none; -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+        body { text-align: center; font-family: 'Poppins', sans-serif; background: #1a1a2e; margin: 0; overflow: hidden; height: 100vh; display: flex; flex-direction: column; color: white; }
+        
+        #game-container { position: relative; flex-grow: 1; width: 100%; background: #16213e; overflow: hidden; border-bottom: 8px solid #e94560; }
         canvas { display: block; width: 100%; height: 100%; }
-        #ui { position: absolute; top: 15px; width: 100%; display: flex; justify-content: space-around; font-weight: bold; color: #ff3399; font-size: 1.4rem; z-index: 5; background: rgba(255,255,255,0.3); padding: 5px 0; border-radius: 10px; }
-        #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.95); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; padding: 30px; text-align: center; }
-        #shuaib-msg { position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%); background: white; padding: 8px 15px; border-radius: 20px; border: 2px solid #ff3399; font-size: 0.9rem; color: #ff3399; display: none; z-index: 8; box-shadow: 0 4px 10px rgba(0,0,0,0.1); white-space: nowrap; }
-        button { padding: 15px 40px; font-size: 20px; background: #ff3399; color: white; border: none; border-radius: 50px; cursor: pointer; box-shadow: 0 5px #b30059; transition: 0.2s; font-weight: bold; }
-        button:active { transform: translateY(4px); box-shadow: 0 2px #b30059; }
-        .pink-text { color: #ff3399; font-weight: bold; }
-        .surprise-btn { margin-top:10px; background:#ff99cc; font-size:16px; padding:10px 20px; box-shadow: 0 3px #b3668c; }
+
+        /* UI Styling */
+        #ui-bar { position: absolute; top: 10px; width: 100%; display: flex; justify-content: space-around; z-index: 5; pointer-events: none; }
+        .stat-box { background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 15px; border: 1px solid #e94560; font-size: 1.1rem; }
+
+        /* Dialog Box */
+        #dialog-cloud { position: absolute; background: white; color: #333; padding: 10px 15px; border-radius: 15px; font-size: 0.9rem; font-weight: bold; pointer-events: none; display: none; transition: 0.3s; z-index: 6; }
+        #dialog-cloud::after { content: ''; position: absolute; bottom: -10px; left: 20px; border-width: 10px 10px 0; border-style: solid; border-color: white transparent; }
+
+        /* Overlays */
+        #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(26, 26, 46, 0.95); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; padding: 40px; }
+        h1 { color: #e94560; margin: 0; font-size: 2.2rem; text-transform: uppercase; letter-spacing: 2px; }
+        p { color: #8892b0; margin: 15px 0; }
+        
+        button { padding: 18px 45px; font-size: 22px; background: #e94560; color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; box-shadow: 0 4px #950740; transition: 0.1s; }
+        button:active { transform: translateY(4px); box-shadow: 0 0px #950740; }
+        
+        .level-up-text { position: absolute; font-size: 3rem; color: #f9d342; font-weight: bold; pointer-events: none; animation: zoomOut 1s forwards; z-index: 20; }
+        @keyframes zoomOut { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1.5); opacity: 0; } }
     </style>
 </head>
 <body>
 
 <div id="game-container">
-    <div id="ui">
-        <div>💖 <span id="score">0</span></div>
-        <div>⏳ <span id="timer">30</span>s</div>
+    <div id="ui-bar">
+        <div class="stat-box">Level: <span id="lvl">1</span></div>
+        <div class="stat-box">Score: <span id="score">0</span></div>
     </div>
-    <div id="shuaib-msg"></div>
+    <div id="dialog-cloud">Catch me if you can!</div>
     <canvas id="gameCanvas"></canvas>
     <div id="overlay">
-        <h2 class="pink-text">🌸 Prova's Special Game 🌸</h2>
-        <p>I made this just for you! Catch the treats for the kitty.</p>
-        <button onclick="startGame()">Start Game, Prova! ✨</button>
-        <p style="font-size: 0.8rem; margin-top: 15px;">Made with 💖 by Shuaib</p>
+        <h1>Catch Shuaib</h1>
+        <p>He's got the ice cream! Use your finger to help Prova catch him before he eats it all!</p>
+        <button onclick="startGame()">START MISSION 🚀</button>
     </div>
 </div>
 
 <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
-    const scoreEl = document.getElementById('score');
-    const timerEl = document.getElementById('timer');
     const overlay = document.getElementById('overlay');
-    const msgBox = document.getElementById('shuaib-msg');
+    const dialog = document.getElementById('dialog-cloud');
+    const scoreEl = document.getElementById('score');
+    const lvlEl = document.getElementById('lvl');
+
+    let gameActive = false;
+    let score = 0;
+    let level = 1;
+    let particles = [];
+    let powerups = [];
+
+    let prova = { x: 100, y: 100, targetX: 100, targetY: 100, speed: 0.1, size: 50 };
+    let shuaib = { x: 300, y: 300, vx: 3, vy: 3, size: 50 };
+
+    const quotes = ["Stop running! 😂", "Almost had me!", "Too slow, Prova!", "Look over there! 🍦", "I'm the flash! ⚡"];
 
     function resize() {
         canvas.width = window.innerWidth;
@@ -50,133 +73,143 @@
     window.addEventListener('resize', resize);
     resize();
 
-    let score = 0;
-    let timeLeft = 30;
-    let gameActive = false;
-    let items = [];
-    let hearts = [];
-    let kitty = { x: canvas.width/2 - 35, y: canvas.height - 110, emoji: "🐱" };
-    let kittyTimer = null;
-
-    const msgs = [
-        "You're doing great, Prova!",
-        "Nice catch! 🍦",
-        "The kitty loves you!",
-        "Shuaib is cheering for you!",
-        "Wow, such a high score!",
-        "You're the best gamer! 👸"
-    ];
-
-    function showShuaibMsg(text) {
-        msgBox.innerText = "Shuaib: " + text;
-        msgBox.style.display = 'block';
-        setTimeout(() => { msgBox.style.display = 'none'; }, 2000);
-    }
-
-    function setKittyFace(face, delay) {
-        if (kittyTimer) clearTimeout(kittyTimer);
-        kitty.emoji = face;
-        kittyTimer = setTimeout(() => {
-            kitty.emoji = "🐱";
-            kittyTimer = null;
-        }, delay);
-    }
-
     function startGame() {
-        score = 0; timeLeft = 30; items = []; hearts = []; kitty.emoji = "🐱";
-        scoreEl.innerText = score;
         overlay.style.display = 'none';
         gameActive = true;
-        
-        let timerId = setInterval(() => {
-            timeLeft--;
-            timerEl.innerText = timeLeft;
-            if (timeLeft <= 0) {
-                clearInterval(timerId);
-                endGame();
-            }
-        }, 1000);
-
-        spawnItem();
+        score = 0; level = 1;
+        scoreEl.innerText = score;
+        lvlEl.innerText = level;
         requestAnimationFrame(gameLoop);
+        setInterval(changeQuote, 3000);
+        setInterval(spawnPowerup, 8000);
     }
 
-    function spawnItem() {
-        if (!gameActive) return;
-        const types = [{e:'🍦',p:10}, {e:'🍫',p:15}, {e:'🌸',p:5}, {e:'☁️',p:-20}];
-        let t = types[Math.floor(Math.random()*types.length)];
-        items.push({ x: Math.random()*(canvas.width-60)+30, y: -50, s: Math.random()*3+3, ...t });
-        setTimeout(spawnItem, 800);
+    function changeQuote() {
+        if(!gameActive) return;
+        dialog.style.display = 'block';
+        dialog.innerText = quotes[Math.floor(Math.random()*quotes.length)];
+    }
+
+    function spawnPowerup() {
+        if(!gameActive) return;
+        powerups.push({
+            x: Math.random() * (canvas.width - 40) + 20,
+            y: Math.random() * (canvas.height - 40) + 20,
+            type: Math.random() > 0.5 ? '💖' : '🧲',
+            life: 300
+        });
     }
 
     canvas.addEventListener('pointermove', e => {
-        kitty.x = e.clientX - 35;
+        prova.targetX = e.clientX;
+        prova.targetY = e.clientY;
     });
 
-    function createHearts(x, y) {
-        for(let i=0; i<5; i++) {
-            hearts.push({ x, y, dx:(Math.random()-0.5)*5, dy:-Math.random()*5-2, o:1 });
+    function createExplosion(x, y, color) {
+        for(let i=0; i<20; i++) {
+            particles.push({
+                x, y, 
+                vx: (Math.random()-0.5)*10, 
+                vy: (Math.random()-0.5)*10, 
+                life: 1.0, 
+                color
+            });
         }
     }
 
     function update() {
-        items.forEach((item, i) => {
-            item.y += item.s;
-            if (item.y > kitty.y - 20 && item.x > kitty.x - 20 && item.x < kitty.x + 80) {
-                score += item.p;
-                scoreEl.innerText = score;
-                if(item.p > 0) {
-                    createHearts(item.x, item.y);
-                    if(Math.random() > 0.7) showShuaibMsg(msgs[Math.floor(Math.random()*msgs.length)]);
-                } else {
-                    setKittyFace("😿", 1000); // Yap! Sad kitty for 1 second.
-                    showShuaibMsg("Careful, Prova! I'm here! ☁️");
-                }
-                items.splice(i, 1);
+        if (!gameActive) return;
+
+        // Prova smooth easing movement
+        prova.x += (prova.targetX - prova.x) * prova.speed;
+        prova.y += (prova.targetY - prova.y) * prova.speed;
+
+        // Shuaib bounce movement
+        shuaib.x += shuaib.vx;
+        shuaib.y += shuaib.vy;
+
+        if (shuaib.x < 0 || shuaib.x > canvas.width - 50) shuaib.vx *= -1;
+        if (shuaib.y < 0 || shuaib.y > canvas.height - 50) shuaib.vy *= -1;
+
+        // Dialog following Shuaib
+        dialog.style.left = (shuaib.x) + "px";
+        dialog.style.top = (shuaib.y - 60) + "px";
+
+        // Collision with Shuaib
+        let dist = Math.hypot(prova.x - shuaib.x, prova.y - shuaib.y);
+        if (dist < 50) {
+            score += 10;
+            scoreEl.innerText = score;
+            createExplosion(shuaib.x, shuaib.y, '#e94560');
+            
+            // Level up logic
+            if (score % 50 === 0) {
+                level++;
+                lvlEl.innerText = level;
+                shuaib.vx *= 1.2;
+                shuaib.vy *= 1.2;
+                showLevelText();
             }
-            if (item.y > canvas.height) items.splice(i, 1);
+
+            // Reposition Shuaib
+            shuaib.x = Math.random() * (canvas.width - 50);
+            shuaib.y = Math.random() * (canvas.height - 50);
+        }
+
+        // Powerup logic
+        powerups.forEach((p, i) => {
+            p.life--;
+            if (Math.hypot(prova.x - p.x, prova.y - p.y) < 40) {
+                if(p.type === '💖') { shuaib.vx *= 0.5; shuaib.vy *= 0.5; setTimeout(() => { shuaib.vx *= 2; shuaib.vy *= 2; }, 3000); }
+                if(p.type === '🧲') { prova.speed = 0.3; setTimeout(() => prova.speed = 0.1, 4000); }
+                powerups.splice(i, 1);
+            }
+            if(p.life <= 0) powerups.splice(i, 1);
         });
 
-        hearts.forEach((h, i) => {
-            h.x += h.dx; h.y += h.dy; h.o -= 0.02;
-            if(h.o <= 0) hearts.splice(i, 1);
+        // Particle update
+        particles.forEach((p, i) => {
+            p.x += p.vx; p.y += p.vy; p.life -= 0.02;
+            if(p.life <= 0) particles.splice(i, 1);
         });
+    }
+
+    function showLevelText() {
+        const div = document.createElement('div');
+        div.className = 'level-up-text';
+        div.innerText = "LEVEL UP!";
+        div.style.left = "50%"; div.style.top = "50%";
+        div.style.transform = "translate(-50%, -50%)";
+        document.body.appendChild(div);
+        setTimeout(() => div.remove(), 1000);
     }
 
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.font = "70px Arial";
-        ctx.fillText(kitty.emoji, kitty.x, kitty.y);
 
-        ctx.font = "40px Arial";
-        items.forEach(item => ctx.fillText(item.e, item.x, item.y));
+        // Draw Powerups
+        ctx.font = "30px Arial";
+        powerups.forEach(p => ctx.fillText(p.type, p.x, p.y));
 
-        hearts.forEach(h => {
-            ctx.globalAlpha = h.o;
-            ctx.font = "40px Arial";
-            ctx.fillText("❤️", h.x, h.y);
-            ctx.globalAlpha = 1;
+        // Draw Particles
+        particles.forEach(p => {
+            ctx.globalAlpha = p.life;
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 5, 0, Math.PI*2);
+            ctx.fill();
         });
-    }
+        ctx.globalAlpha = 1;
 
-    function endGame() {
-        gameActive = false;
-        overlay.innerHTML = `
-            <h2 class="pink-text">Game Over, Prova!</h2>
-            <div style="font-size:60px">💝🐱✨</div>
-            <p>Your Final Score: <b>${score}</b></p>
-            <p><i>"I hope this game made you smile today!" - Shuaib</i></p>
-            <button onclick="location.reload()">Play Again</button>
-            <button onclick="alert('You are my favorite person! ❤️')" class="surprise-btn">Click for a Surprise</button>
-        `;
-        overlay.style.display = 'flex';
+        // Draw Characters
+        ctx.font = "50px Arial";
+        ctx.fillText("🙋‍♂️🍦", shuaib.x, shuaib.y + 40);
+        ctx.fillText("👸", prova.x - 25, prova.y + 20);
     }
 
     function gameLoop() {
-        if (gameActive || hearts.length > 0) {
-            update(); draw();
-            requestAnimationFrame(gameLoop);
-        }
+        update(); draw();
+        if (gameActive) requestAnimationFrame(gameLoop);
     }
 </script>
 </body>
