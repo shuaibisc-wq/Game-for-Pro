@@ -3,48 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Catch Shuaib: Kitty Alert!</title>
+    <title>Prova's Ice Cream Quest 🍦</title>
     <style>
-        * { touch-action: none; user-select: none; box-sizing: border-box; }
-        body { margin: 0; overflow: hidden; background: #0f172a; font-family: 'Arial', sans-serif; display: flex; flex-direction: column; height: 100vh; }
+        @import url('https://fonts.googleapis.com/css2?family=Pacifico&family=Poppins:wght@400;600&display=swap');
         
+        * { touch-action: none; user-select: none; box-sizing: border-box; }
+        body { 
+            margin: 0; padding: 0; overflow: hidden; 
+            background: #ffe4e6; 
+            font-family: 'Poppins', sans-serif;
+            display: flex; flex-direction: column; height: 100vh;
+        }
+
+        /* The Play Area with Walls */
         #game-area { 
-            position: relative; 
-            width: 100%; 
-            flex-grow: 1; 
-            background: #1e293b; 
-            border: 5px solid #f472b6; /* The Wall Border */
-            overflow: hidden;
+            position: relative; width: 100%; flex-grow: 1;
+            background: linear-gradient(135deg, #fff1f2 0%, #fae8ff 100%);
+            border: 8px solid #fda4af; /* The Walls */
+            border-radius: 20px 20px 0 0;
+            margin-top: 10px; overflow: hidden;
         }
 
         canvas { display: block; width: 100%; height: 100%; }
 
-        #ui { position: absolute; top: 10px; width: 100%; display: flex; justify-content: space-around; color: white; font-weight: bold; z-index: 10; pointer-events: none; }
+        #ui { 
+            position: absolute; top: 15px; width: 100%; display: flex; 
+            justify-content: space-around; color: #be185d; font-weight: 600; 
+            z-index: 10; font-size: 1.2rem;
+        }
 
-        /* D-PAD CONTROLS */
+        /* Glassmorphism D-Pad */
         #controls { 
-            height: 180px; 
-            background: #0f172a; 
-            display: grid; 
-            grid-template-areas: ". up ." "left . right" ". down .";
-            justify-content: center; 
-            align-content: center; 
-            gap: 10px;
-            padding: 10px;
+            height: 220px; background: white; 
+            display: grid; grid-template-areas: ". up ." "left . right" ". down .";
+            justify-content: center; align-content: center; gap: 15px;
+            border-top: 2px solid #fce7f3; box-shadow: 0 -10px 25px rgba(0,0,0,0.05);
         }
 
         .btn { 
-            width: 65px; height: 65px; background: #334155; color: white; 
-            border: 2px solid #f472b6; border-radius: 15px; 
+            width: 60px; height: 60px; background: #fff1f2; color: #fb7185; 
+            border: 2px solid #fecdd3; border-radius: 50%; 
             display: flex; justify-content: center; align-items: center; 
-            font-size: 24px; font-weight: bold;
+            font-size: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            transition: 0.1s;
         }
-        .btn:active { background: #f472b6; transform: scale(0.9); }
+        .btn:active { transform: scale(0.9); background: #f43f5e; color: white; }
         .up { grid-area: up; } .down { grid-area: down; } .left { grid-area: left; } .right { grid-area: right; }
 
         /* Overlays */
-        #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; color: white; text-align: center; }
-        button#start-btn { padding: 15px 40px; font-size: 20px; background: #f472b6; color: white; border: none; border-radius: 50px; cursor: pointer; }
+        #overlay { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(5px);
+            display: flex; flex-direction: column; justify-content: center; 
+            align-items: center; z-index: 100; text-align: center;
+        }
+        h1 { font-family: 'Pacifico', cursive; color: #e11d48; font-size: 2.5rem; margin: 0; }
+        button#start-btn { 
+            padding: 15px 45px; font-size: 1.2rem; background: #fb7185; color: white; 
+            border: none; border-radius: 50px; cursor: pointer; font-weight: 600;
+            box-shadow: 0 5px 15px rgba(251, 113, 133, 0.4);
+        }
     </style>
 </head>
 <body>
@@ -53,14 +71,14 @@
 
     <div id="game-area">
         <div id="ui">
-            <div>Score: <span id="score">0</span></div>
-            <div>Level: <span id="lvl">1</span></div>
+            <div>🌸 Score: <span id="score">0</span></div>
+            <div>✨ Lvl: <span id="lvl">1</span></div>
         </div>
         <canvas id="gameCanvas"></canvas>
         <div id="overlay">
-            <h1 id="msg">CATCH SHUAIB! 🍦</h1>
-            <p id="sub-msg">Avoid the Kitties! They want the ice cream!</p>
-            <button id="start-btn" onclick="startGame()">START GAME</button>
+            <h1>Sweet Catch</h1>
+            <p style="color: #9f1239;">Help Prova get her Discone from Shuaib!</p>
+            <button id="start-btn" onclick="startGame()">Start Game ✨</button>
         </div>
     </div>
 
@@ -85,11 +103,11 @@
 
     let gameActive = false;
     let score = 0; let level = 1;
-    let charSize = 70;
+    let charSize = 85; 
     let prova = { x: 50, y: 50, vx: 0, vy: 0, speed: 5 };
-    let shuaib = { x: 200, y: 200, vx: 2, vy: 2 };
+    let shuaib = { x: 200, y: 200, vx: 2.5, vy: 2.5 };
     let kitties = [];
-    let showIceCream = false; let iceCreamTimer = 0;
+    let twinkleTimer = 0;
 
     function resize() {
         canvas.width = canvas.parentElement.clientWidth;
@@ -111,13 +129,14 @@
         kitties.push({
             x: Math.random() * (canvas.width - charSize),
             y: Math.random() * (canvas.height - charSize),
-            life: 200
+            life: 250
         });
-        setTimeout(spawnKitty, Math.max(1000, 3000 - (level * 200)));
+        setTimeout(spawnKitty, Math.max(1200, 3500 - (level * 300)));
     }
 
     function startGame() {
         document.getElementById('overlay').style.display = 'none';
+        document.getElementById('bgMusic').play().catch(()=>{});
         gameActive = true; score = 0; level = 1; kitties = [];
         prova.x = 50; prova.y = 50; prova.vx = 0; prova.vy = 0;
         scoreEl.innerText = score; lvlEl.innerText = level;
@@ -125,71 +144,66 @@
         requestAnimationFrame(gameLoop);
     }
 
-    function drawCircle(img, x, y, size, border) {
+    function drawRoundFrame(img, x, y, size, color) {
         ctx.save();
         ctx.beginPath();
         ctx.arc(x + size/2, y + size/2, size/2, 0, Math.PI*2);
         ctx.clip();
         if(img.complete) ctx.drawImage(img, x, y, size, size);
-        else { ctx.fillStyle = "gray"; ctx.fill(); }
+        else { ctx.fillStyle = "#ddd"; ctx.fill(); }
         ctx.restore();
-        ctx.strokeStyle = border; ctx.lineWidth = 3;
-        ctx.strokeRect(x, y, size, size); // Square border as requested for "Walls" feel
+        
+        ctx.beginPath();
+        ctx.arc(x + size/2, y + size/2, size/2, 0, Math.PI*2);
+        ctx.strokeStyle = "white"; ctx.lineWidth = 4; ctx.stroke();
+        ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
     }
 
     function update() {
         if(!gameActive) return;
 
-        // Prova movement & Walls
         prova.x += prova.vx; prova.y += prova.vy;
         if(prova.x < 0) prova.x = 0; if(prova.x > canvas.width - charSize) prova.x = canvas.width - charSize;
         if(prova.y < 0) prova.y = 0; if(prova.y > canvas.height - charSize) prova.y = canvas.height - charSize;
 
-        // Shuaib movement
         shuaib.x += shuaib.vx; shuaib.y += shuaib.vy;
         if(shuaib.x < 0 || shuaib.x > canvas.width - charSize) shuaib.vx *= -1;
         if(shuaib.y < 0 || shuaib.y > canvas.height - charSize) shuaib.vy *= -1;
 
-        // Catch Shuaib
-        if(Math.hypot(prova.x - shuaib.x, prova.y - shuaib.y) < 50) {
+        if(Math.hypot(prova.x - shuaib.x, prova.y - shuaib.y) < 60) {
             score += 10; scoreEl.innerText = score;
             shuaib.x = Math.random() * (canvas.width - charSize);
             shuaib.y = Math.random() * (canvas.height - charSize);
-            showIceCream = true; iceCreamTimer = 30; // Show ice cream pic
+            twinkleTimer = 40; // Start Twinkle
             if(score % 50 === 0) { level++; lvlEl.innerText = level; shuaib.vx *= 1.2; }
         }
 
-        // Kitty Collision (Game Over)
         kitties.forEach((k, i) => {
             k.life--;
-            if(Math.hypot(prova.x - k.x, prova.y - k.y) < 50) {
-                gameOver("OH NO! THE KITTY STOLE IT! 😿");
+            if(Math.hypot(prova.x - k.x, prova.y - k.y) < 55) {
+                gameActive = false;
+                document.getElementById('overlay').style.display = 'flex';
+                document.getElementById('msg').innerText = "Game Over 😿";
+                document.getElementById('sub-msg').innerText = "A kitty stole the Discone!\nFinal Score: " + score;
             }
             if(k.life <= 0) kitties.splice(i, 1);
         });
     }
 
-    function gameOver(msg) {
-        gameActive = false;
-        document.getElementById('overlay').style.display = 'flex';
-        document.getElementById('msg').innerText = "GAME OVER";
-        document.getElementById('sub-msg').innerText = msg + "\nFinal Score: " + score;
-    }
-
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        // Draw Prova & Shuaib
-        drawCircle(provaImg, prova.x, prova.y, charSize, "#f472b6");
-        drawCircle(shuaibImg, shuaib.x, shuaib.y, charSize, "#60a5fa");
+        drawRoundFrame(shuaibImg, shuaib.x, shuaib.y, charSize, "#60a5fa");
+        drawRoundFrame(provaImg, prova.x, prova.y, charSize, "#f472b6");
+        kitties.forEach(k => drawRoundFrame(kittyImg, k.x, k.y, charSize, "#fbbf24"));
 
-        // Draw Kitties
-        kitties.forEach(k => drawCircle(kittyImg, k.x, k.y, charSize, "red"));
-
-        // Draw Discone Ice Cream if caught
-        if(showIceCream && iceCreamTimer > 0) {
-            ctx.drawImage(iceCreamImg, canvas.width/2 - 50, canvas.height/2 - 50, 100, 100);
-            iceCreamTimer--;
+        if(twinkleTimer > 0) {
+            const pulse = 1 + Math.sin(twinkleTimer * 0.5) * 0.2;
+            const size = 120 * pulse;
+            ctx.globalAlpha = twinkleTimer / 40;
+            ctx.drawImage(iceCreamImg, canvas.width/2 - size/2, canvas.height/2 - size/2, size, size);
+            ctx.globalAlpha = 1.0;
+            twinkleTimer--;
         }
     }
 
