@@ -28,7 +28,7 @@
         #ui { 
             position: absolute; top: 15px; width: 100%; display: flex; 
             justify-content: space-around; color: #be185d; font-weight: 600; 
-            z-index: 10; font-size: 1.2rem; pointer-events: none;
+            z-index: 10; font-size: 1.1rem; pointer-events: none;
         }
 
         #controls { 
@@ -54,11 +54,10 @@
             display: flex; flex-direction: column; justify-content: center; 
             align-items: center; z-index: 100; text-align: center;
         }
-        h1 { font-family: 'Pacifico', cursive; color: #e11d48; font-size: 2.5rem; margin: 0; }
+        h1 { font-family: 'Pacifico', cursive; color: #e11d48; font-size: 2.2rem; margin: 0; }
         button#start-btn { 
-            padding: 15px 45px; font-size: 1.2rem; background: #fb7185; color: white; 
+            padding: 12px 40px; font-size: 1.1rem; background: #fb7185; color: white; 
             border: none; border-radius: 50px; cursor: pointer; font-weight: 600;
-            box-shadow: 0 5px 15px rgba(251, 113, 133, 0.4);
         }
     </style>
 </head>
@@ -74,8 +73,8 @@
         <canvas id="gameCanvas"></canvas>
         <div id="overlay">
             <h1 id="msg">Sweet Catch</h1>
-            <p id="sub-msg" style="color: #9f1239;">Help Prova get her Discone from Shuaib!</p>
-            <button id="start-btn" onclick="startGame()">Start Game ✨</button>
+            <p id="sub-msg" style="color: #9f1239;">Help Prova find Shuaib!</p>
+            <button id="start-btn" onclick="startGame()">Play ✨</button>
         </div>
     </div>
 
@@ -92,17 +91,16 @@
     const scoreEl = document.getElementById('score');
     const lvlEl = document.getElementById('lvl');
     
-    // IMAGE LOADING
     const provaImg = new Image(); provaImg.src = '1000017694-removebg-preview.png'; 
-    const shuaibImg = new Image(); shuaibImg.src = 'a97cf831-5384-4688-ac64-a6430ba0cc45-1_all_7690.jpg'; // Fixed extension
+    const shuaibImg = new Image(); shuaibImg.src = 'a97cf831-5384-4688-ac64-a6430ba0cc45-1_all_7690.jpg';
     const kittyImg = new Image(); kittyImg.src = 'kitty.jpg';
     const iceCreamImg = new Image(); iceCreamImg.src = 'discone.jpg';
 
     let gameActive = false;
     let score = 0; let level = 1;
-    let charSize = 50; // Optimized small size
-    let prova = { x: 50, y: 50, vx: 0, vy: 0, speed: 3 }; // Slower speed for easier play
-    let shuaib = { x: 200, y: 200, vx: 2, vy: 2 };
+    let charSize = 35; // Extra small as requested
+    let prova = { x: 50, y: 50, vx: 0, vy: 0, speed: 2.5 }; // Slower Prova
+    let shuaib = { x: 200, y: 200, vx: 1.5, vy: 1.5 }; // Slower Shuaib
     let kitties = [];
     let twinkleTimer = 0;
 
@@ -126,16 +124,16 @@
         kitties.push({
             x: Math.random() * (canvas.width - charSize),
             y: Math.random() * (canvas.height - charSize),
-            life: 300
+            life: 400 // Kitties stay longer to feel less chaotic
         });
-        setTimeout(spawnKitty, Math.max(1500, 4000 - (level * 250)));
+        setTimeout(spawnKitty, Math.max(2000, 5000 - (level * 200)));
     }
 
     function startGame() {
         document.getElementById('overlay').style.display = 'none';
         document.getElementById('bgMusic').play().catch(()=>{});
         gameActive = true; score = 0; level = 1; kitties = [];
-        prova.x = 50; prova.y = 50; prova.vx = 0; prova.vy = 0;
+        prova.x = 20; prova.y = 20; prova.vx = 0; prova.vy = 0;
         scoreEl.innerText = score; lvlEl.innerText = level;
         spawnKitty();
         requestAnimationFrame(gameLoop);
@@ -153,11 +151,8 @@
             ctx.fill();
         }
         ctx.restore();
-        
-        ctx.beginPath();
-        ctx.arc(x + size/2, y + size/2, size/2, 0, Math.PI*2);
-        ctx.strokeStyle = "white"; ctx.lineWidth = 3; ctx.stroke();
-        ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.strokeStyle = "white"; ctx.lineWidth = 2; ctx.stroke();
+        ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.stroke();
     }
 
     function update() {
@@ -171,22 +166,21 @@
         if(shuaib.x < 0 || shuaib.x > canvas.width - charSize) shuaib.vx *= -1;
         if(shuaib.y < 0 || shuaib.y > canvas.height - charSize) shuaib.vy *= -1;
 
-        // Easier collision detection
-        if(Math.hypot(prova.x - shuaib.x, prova.y - shuaib.y) < 45) {
+        if(Math.hypot(prova.x - shuaib.x, prova.y - shuaib.y) < charSize + 5) {
             score += 10; scoreEl.innerText = score;
             shuaib.x = Math.random() * (canvas.width - charSize);
             shuaib.y = Math.random() * (canvas.height - charSize);
             twinkleTimer = 40;
-            if(score % 50 === 0) { level++; lvlEl.innerText = level; shuaib.vx *= 1.1; }
+            if(score % 50 === 0) { level++; lvlEl.innerText = level; }
         }
 
         kitties.forEach((k, i) => {
             k.life--;
-            if(Math.hypot(prova.x - k.x, prova.y - k.y) < 40) {
+            if(Math.hypot(prova.x - k.x, prova.y - k.y) < charSize - 5) {
                 gameActive = false;
                 document.getElementById('overlay').style.display = 'flex';
-                document.getElementById('msg').innerText = "Game Over 😿";
-                document.getElementById('sub-msg').innerText = "Final Score: " + score;
+                document.getElementById('msg').innerText = "Try Again! 🍦";
+                document.getElementById('sub-msg').innerText = "Score: " + score;
             }
             if(k.life <= 0) kitties.splice(i, 1);
         });
@@ -194,14 +188,12 @@
 
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
         drawRoundFrame(shuaibImg, shuaib.x, shuaib.y, charSize, "#60a5fa");
         drawRoundFrame(provaImg, prova.x, prova.y, charSize, "#f472b6");
         kitties.forEach(k => drawRoundFrame(kittyImg, k.x, k.y, charSize, "#fbbf24"));
 
         if(twinkleTimer > 0) {
-            const pulse = 1 + Math.sin(twinkleTimer * 0.5) * 0.2;
-            const size = 100 * pulse;
+            const size = 80;
             ctx.globalAlpha = twinkleTimer / 40;
             ctx.drawImage(iceCreamImg, canvas.width/2 - size/2, canvas.height/2 - size/2, size, size);
             ctx.globalAlpha = 1.0;
