@@ -1,166 +1,190 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Prova's 18th Birthday Maze 🍦</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Pacifico&display=swap');
-        * { touch-action: none; user-select: none; box-sizing: border-box; }
-        body { margin: 0; padding: 0; overflow: hidden; background: #fff1f2; height: 100vh; font-family: sans-serif; }
-        #game-container { position: relative; width: 100vw; height: 100vh; background: #fffafa; }
-        canvas { display: block; width: 100%; height: 100%; }
-        #ui { position: absolute; top: 15px; width: 100%; display: flex; justify-content: space-around; color: #e11d48; font-weight: bold; z-index: 10; pointer-events: none; }
-        #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; text-align: center; }
-        button { padding: 15px 45px; background: #fb7185; color: white; border: none; border-radius: 50px; font-size: 1.2rem; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-    </style>
-</head>
-<body>
-
-    <div id="game-container">
-        <div id="ui"><span>Score: <span id="score">0</span></span><span>Lvl: <span id="lvl">1</span></span></div>
-        <canvas id="gameCanvas"></canvas>
-        <div id="overlay">
-            <h1 style="font-family: 'Pacifico'; color: #e11d48; font-size: 2.2rem;">The 1D Maze</h1>
-            <p style="color: #be185d;">Swipe to turn through the gaps!</p>
-            <button onclick="startGame()">Start! ✨</button>
-        </div>
-    </div>
-
 <script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
 
-    const provaImg = new Image(); provaImg.src = '1000017694-removebg-preview.png'; 
-    const shuaibImg = new Image(); shuaibImg.src = 'a97cf831-5384-4688-ac64-a6430ba0cc45-1_all_7690-removebg-preview.png';
-    const kittyImg = new Image(); kittyImg.src = 'kitty.jpg';
-    const iceCreamImg = new Image(); iceCreamImg.src = 'discone.jpg';
+const provaImg = new Image(); provaImg.src = '1000017694-removebg-preview.png'; 
+const shuaibImg = new Image(); shuaibImg.src = 'a97cf831-5384-4688-ac64-a6430ba0cc45-1_all_7690-removebg-preview.png';
+const kittyImg = new Image(); kittyImg.src = 'kitty.jpg';
+const iceCreamImg = new Image(); iceCreamImg.src = 'discone.jpg';
 
-    let gameActive = false, score = 0, level = 1, twinkle = 0;
-    const charSize = 45; 
-    const moveSpeed = 4;
-    
-    let prova = { x: 0, y: 0, vx: 0, vy: 0 };
-    let shuaib = { x: 0, y: 0, vx: 2, vy: 2 };
-    let walls = [], kitties = [];
+let gameActive = false, score = 0, level = 1, twinkle = 0;
 
-    // SWIPE CONTROL
-    let sX, sY;
-    window.addEventListener('touchstart', e => { sX = e.touches[0].clientX; sY = e.touches[0].clientY; });
-    window.addEventListener('touchend', e => {
-        if(!gameActive) return;
-        const dX = e.changedTouches[0].clientX - sX;
-        const dY = e.changedTouches[0].clientY - sY;
-        if(Math.abs(dX) > 15 || Math.abs(dY) > 15) {
-            prova.vx = 0; prova.vy = 0;
-            if(Math.abs(dX) > Math.abs(dY)) prova.vx = dX > 0 ? moveSpeed : -moveSpeed;
-            else prova.vy = dY > 0 ? moveSpeed : -moveSpeed;
-        }
-    });
+const charSize = 45; 
+const accel = 0.6;      // smooth acceleration
+const friction = 0.90;  // slow down gradually
+const maxSpeed = 4;
 
-    function createMaze() {
-        walls = [];
-        const laneWidth = charSize + 20;
-        const wallThickness = 12;
+let prova = { x: 0, y: 0, vx: 0, vy: 0 };
+let shuaib = { x: 0, y: 0, vx: 2, vy: 2 };
+let walls = [], kitties = [];
 
-        // Build a Structured Grid
-        for (let x = laneWidth; x < canvas.width; x += laneWidth) {
-            for (let y = 0; y < canvas.height; y += laneWidth) {
-                // Horizontal wall with a "Vacant" gap
-                if (y % (laneWidth * 2) !== 0 || x % (laneWidth * 3) !== 0) {
-                    walls.push({ x: x - laneWidth, y: y, w: laneWidth - 15, h: wallThickness });
-                }
-                // Vertical wall with a "Vacant" gap
-                if (x % (laneWidth * 2) !== 0 || y % (laneWidth * 3) !== 0) {
-                    walls.push({ x: x, y: y - laneWidth, w: wallThickness, h: laneWidth - 15 });
-                }
+// SWIPE CONTROL (improved)
+let sX, sY;
+window.addEventListener('touchstart', e => {
+    sX = e.touches[0].clientX;
+    sY = e.touches[0].clientY;
+});
+window.addEventListener('touchend', e => {
+    if(!gameActive) return;
+    const dX = e.changedTouches[0].clientX - sX;
+    const dY = e.changedTouches[0].clientY - sY;
+
+    if(Math.abs(dX) > Math.abs(dY)) {
+        prova.vx += dX > 0 ? accel*3 : -accel*3;
+    } else {
+        prova.vy += dY > 0 ? accel*3 : -accel*3;
+    }
+});
+
+// BETTER MAZE
+function createMaze() {
+    walls = [];
+    const gap = 80;
+
+    for(let i=0;i<canvas.width;i+=100){
+        for(let j=0;j<canvas.height;j+=100){
+
+            if(Math.random() > 0.3){
+                walls.push({x:i, y:j, w:80, h:10});
+            }
+            if(Math.random() > 0.3){
+                walls.push({x:i, y:j, w:10, h:80});
             }
         }
     }
+}
 
-    function checkWall(px, py) {
-        if (px < 0 || px > canvas.width - charSize || py < 0 || py > canvas.height - charSize) return true;
-        return walls.some(w => px < w.x + w.w && px + charSize > w.x && py < w.y + w.h && py + charSize > w.y);
-    }
+function checkWall(px, py) {
+    return walls.some(w =>
+        px < w.x + w.w &&
+        px + charSize > w.x &&
+        py < w.y + w.h &&
+        py + charSize > w.y
+    );
+}
 
-    function resize() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        createMaze();
-    }
-    window.addEventListener('resize', resize);
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    createMaze();
+}
+window.addEventListener('resize', resize);
 
-    function startGame() {
-        resize();
-        document.getElementById('overlay').style.display = 'none';
-        gameActive = true; score = 0; level = 1; kitties = [];
-        prova.x = 5; prova.y = 5; prova.vx = 0; prova.vy = 0;
-        shuaib.x = canvas.width - 60; shuaib.y = canvas.height - 60;
-        spawnKitty();
-        requestAnimationFrame(gameLoop);
-    }
+function startGame() {
+    resize();
+    document.getElementById('overlay').style.display = 'none';
+    gameActive = true;
+    score = 0;
 
-    function spawnKitty() {
-        if(!gameActive) return;
+    prova = { x: 20, y: 20, vx: 0, vy: 0 };
+    shuaib = { x: canvas.width-80, y: canvas.height-80, vx: 2, vy: 2 };
+    kitties = [];
+
+    spawnKitty();
+    requestAnimationFrame(gameLoop);
+}
+
+function spawnKitty() {
+    if(!gameActive) return;
+
+    let tries = 0;
+    while(tries < 10){
         let kX = Math.random() * (canvas.width - charSize);
         let kY = Math.random() * (canvas.height - charSize);
-        if(!checkWall(kX, kY)) kitties.push({ x: kX, y: kY, life: 200 });
-        setTimeout(spawnKitty, 3000);
+
+        if(!checkWall(kX, kY)){
+            kitties.push({ x: kX, y: kY, life: 300 });
+            break;
+        }
+        tries++;
     }
 
-    function drawFrame(img, x, y, color) {
-        ctx.save();
-        ctx.beginPath(); ctx.arc(x + charSize/2, y + charSize/2, charSize/2, 0, Math.PI*2); ctx.clip();
-        if(img.complete) ctx.drawImage(img, x, y, charSize, charSize);
-        ctx.restore();
-        ctx.strokeStyle = color; ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.arc(x + charSize/2, y + charSize/2, charSize/2, 0, Math.PI*2); ctx.stroke();
+    setTimeout(spawnKitty, 4000);
+}
+
+// DRAW
+function drawFrame(img, x, y, color) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x + charSize/2, y + charSize/2, charSize/2, 0, Math.PI*2);
+    ctx.clip();
+    if(img.complete) ctx.drawImage(img, x, y, charSize, charSize);
+    ctx.restore();
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(x + charSize/2, y + charSize/2, charSize/2, 0, Math.PI*2);
+    ctx.stroke();
+}
+
+// BACKGROUND ✨
+function drawBackground() {
+    let grad = ctx.createLinearGradient(0,0,canvas.width,canvas.height);
+    grad.addColorStop(0, "#ffe4e6");
+    grad.addColorStop(1, "#fbcfe8");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+}
+
+function gameLoop() {
+    if(!gameActive) return;
+
+    drawBackground();
+
+    // walls
+    ctx.fillStyle = "#fb7185";
+    walls.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
+
+    // SMOOTH MOVEMENT
+    prova.vx *= friction;
+    prova.vy *= friction;
+
+    prova.vx = Math.max(-maxSpeed, Math.min(maxSpeed, prova.vx));
+    prova.vy = Math.max(-maxSpeed, Math.min(maxSpeed, prova.vy));
+
+    if (!checkWall(prova.x + prova.vx, prova.y)) prova.x += prova.vx;
+    if (!checkWall(prova.x, prova.y + prova.vy)) prova.y += prova.vy;
+
+    // SHUAIB smoother bounce
+    if (checkWall(shuaib.x + shuaib.vx, shuaib.y)) shuaib.vx *= -1;
+    if (checkWall(shuaib.x, shuaib.y + shuaib.vy)) shuaib.vy *= -1;
+
+    shuaib.x += shuaib.vx;
+    shuaib.y += shuaib.vy;
+
+    // CATCH
+    if (Math.hypot(prova.x - shuaib.x, prova.y - shuaib.y) < charSize) {
+        score += 10;
+        document.getElementById('score').innerText = score;
+        twinkle = 20;
+
+        shuaib.x = Math.random() * (canvas.width - charSize);
+        shuaib.y = Math.random() * (canvas.height - charSize);
     }
 
-    function gameLoop() {
-        if(!gameActive) return;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // KITTIES (fair collision)
+    kitties.forEach((k, i) => {
+        k.life--;
 
-        // Draw Structured Walls
-        ctx.fillStyle = "#fda4af";
-        walls.forEach(w => { ctx.beginPath(); ctx.roundRect(w.x, w.y, w.w, w.h, 6); ctx.fill(); });
-
-        // Prova logic - Stop if hitting wall
-        if (!checkWall(prova.x + prova.vx, prova.y)) prova.x += prova.vx;
-        else prova.vx = 0;
-        if (!checkWall(prova.x, prova.y + prova.vy)) prova.y += prova.vy;
-        else prova.vy = 0;
-
-        // Shuaib logic - Bounce
-        if (checkWall(shuaib.x + shuaib.vx, shuaib.y)) shuaib.vx *= -1;
-        if (checkWall(shuaib.x, shuaib.y + shuaib.vy)) shuaib.vy *= -1;
-        shuaib.x += shuaib.vx; shuaib.y += shuaib.vy;
-
-        // Catch
-        if (Math.hypot(prova.x - shuaib.x, prova.y - shuaib.y) < charSize) {
-            score += 10; document.getElementById('score').innerText = score;
-            twinkle = 30;
-            shuaib.x = Math.random() * (canvas.width - charSize);
-            shuaib.y = Math.random() * (canvas.height - charSize);
+        if (Math.hypot(prova.x - k.x, prova.y - k.y) < 30) {
+            alert("Game Over 😭");
+            location.reload();
         }
 
-        // Draw Kitties
-        kitties.forEach((k, i) => {
-            k.life--;
-            if (Math.hypot(prova.x - k.x, prova.y - k.y) < 40) { gameActive = false; location.reload(); }
-            if (k.life <= 0) kitties.splice(i, 1);
-            drawFrame(kittyImg, k.x, k.y, "red");
-        });
+        if (k.life <= 0) kitties.splice(i, 1);
 
-        drawFrame(shuaibImg, shuaib.x, shuaib.y, "#60a5fa");
-        drawFrame(provaImg, prova.x, prova.y, "#f472b6");
+        drawFrame(kittyImg, k.x, k.y, "red");
+    });
 
-        if (twinkle > 0) {
-            ctx.drawImage(iceCreamImg, canvas.width/2-60, canvas.height/2-100, 120, 120);
-            twinkle--;
-        }
-        requestAnimationFrame(gameLoop);
+    drawFrame(shuaibImg, shuaib.x, shuaib.y, "#60a5fa");
+    drawFrame(provaImg, prova.x, prova.y, "#f472b6");
+
+    if (twinkle > 0) {
+        ctx.drawImage(iceCreamImg, canvas.width/2-60, canvas.height/2-100, 120, 120);
+        twinkle--;
     }
+
+    requestAnimationFrame(gameLoop);
+}
 </script>
-</body>
-</html>
