@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fixed Maze: Swipe Edition</title>
+    <title>Prova's 18th Birthday Maze 🍦</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Pacifico&display=swap');
         * { touch-action: none; user-select: none; box-sizing: border-box; }
-        body { margin: 0; padding: 0; overflow: hidden; background: #fff1f2; height: 100vh; }
+        body { margin: 0; padding: 0; overflow: hidden; background: #fff1f2; height: 100vh; font-family: sans-serif; }
         #game-container { position: relative; width: 100vw; height: 100vh; background: #fffafa; }
         canvas { display: block; width: 100%; height: 100%; }
         #ui { position: absolute; top: 15px; width: 100%; display: flex; justify-content: space-around; color: #e11d48; font-weight: bold; z-index: 10; pointer-events: none; }
-        #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.85); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; text-align: center; }
-        button { padding: 15px 45px; background: #fb7185; color: white; border: none; border-radius: 50px; font-size: 1.2rem; font-weight: bold; }
+        #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; text-align: center; }
+        button { padding: 15px 45px; background: #fb7185; color: white; border: none; border-radius: 50px; font-size: 1.2rem; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
     </style>
 </head>
 <body>
@@ -21,9 +21,9 @@
         <div id="ui"><span>Score: <span id="score">0</span></span><span>Lvl: <span id="lvl">1</span></span></div>
         <canvas id="gameCanvas"></canvas>
         <div id="overlay">
-            <h1 style="font-family: 'Pacifico'; color: #e11d48;">Maze Fixed! 🍦</h1>
-            <p style="color: #be185d;">Swipe to catch Shuaib in the tracks!</p>
-            <button onclick="startGame()">Play Now ✨</button>
+            <h1 style="font-family: 'Pacifico'; color: #e11d48; font-size: 2.2rem;">The 1D Maze</h1>
+            <p style="color: #be185d;">Swipe to turn through the gaps!</p>
+            <button onclick="startGame()">Start! ✨</button>
         </div>
     </div>
 
@@ -38,37 +38,49 @@
 
     let gameActive = false, score = 0, level = 1, twinkle = 0;
     const charSize = 45; 
-    const speed = 4.5;
+    const moveSpeed = 4;
     
-    let prova = { x: 10, y: 10, vx: 0, vy: 0 };
-    let shuaib = { x: 200, y: 200, vx: 2.5, vy: 2.5 };
+    let prova = { x: 0, y: 0, vx: 0, vy: 0 };
+    let shuaib = { x: 0, y: 0, vx: 2, vy: 2 };
     let walls = [], kitties = [];
 
-    // Swipe Handling
+    // SWIPE CONTROL
     let sX, sY;
     window.addEventListener('touchstart', e => { sX = e.touches[0].clientX; sY = e.touches[0].clientY; });
     window.addEventListener('touchend', e => {
         if(!gameActive) return;
         const dX = e.changedTouches[0].clientX - sX;
         const dY = e.changedTouches[0].clientY - sY;
-        if(Math.abs(dX) > 20 || Math.abs(dY) > 20) {
+        if(Math.abs(dX) > 15 || Math.abs(dY) > 15) {
             prova.vx = 0; prova.vy = 0;
-            if(Math.abs(dX) > Math.abs(dY)) prova.vx = dX > 0 ? speed : -speed;
-            else prova.vy = dY > 0 ? speed : -speed;
+            if(Math.abs(dX) > Math.abs(dY)) prova.vx = dX > 0 ? moveSpeed : -moveSpeed;
+            else prova.vy = dY > 0 ? moveSpeed : -moveSpeed;
         }
     });
 
     function createMaze() {
         walls = [];
-        const gap = charSize + 25; // Wide enough paths
-        // Vertical Walls (Creating Lanes)
-        for (let x = gap; x < canvas.width; x += gap) {
-            for (let y = 0; y < canvas.height; y += gap) {
-                if (Math.random() > 0.4) {
-                    walls.push({ x: x, y: y, w: 10, h: gap * 0.7 }); // Narrow wall blocks
+        const laneWidth = charSize + 20;
+        const wallThickness = 12;
+
+        // Build a Structured Grid
+        for (let x = laneWidth; x < canvas.width; x += laneWidth) {
+            for (let y = 0; y < canvas.height; y += laneWidth) {
+                // Horizontal wall with a "Vacant" gap
+                if (y % (laneWidth * 2) !== 0 || x % (laneWidth * 3) !== 0) {
+                    walls.push({ x: x - laneWidth, y: y, w: laneWidth - 15, h: wallThickness });
+                }
+                // Vertical wall with a "Vacant" gap
+                if (x % (laneWidth * 2) !== 0 || y % (laneWidth * 3) !== 0) {
+                    walls.push({ x: x, y: y - laneWidth, w: wallThickness, h: laneWidth - 15 });
                 }
             }
         }
+    }
+
+    function checkWall(px, py) {
+        if (px < 0 || px > canvas.width - charSize || py < 0 || py > canvas.height - charSize) return true;
+        return walls.some(w => px < w.x + w.w && px + charSize > w.x && py < w.y + w.h && py + charSize > w.y);
     }
 
     function resize() {
@@ -78,59 +90,70 @@
     }
     window.addEventListener('resize', resize);
 
-    function checkWall(px, py) {
-        if (px < 0 || px > canvas.width - charSize || py < 0 || py > canvas.height - charSize) return true;
-        return walls.some(w => px < w.x + w.w && px + charSize > w.x && py < w.y + w.h && py + charSize > w.y);
-    }
-
     function startGame() {
         resize();
         document.getElementById('overlay').style.display = 'none';
         gameActive = true; score = 0; level = 1; kitties = [];
-        prova.x = 10; prova.y = 10; prova.vx = 0; prova.vy = 0;
+        prova.x = 5; prova.y = 5; prova.vx = 0; prova.vy = 0;
         shuaib.x = canvas.width - 60; shuaib.y = canvas.height - 60;
+        spawnKitty();
         requestAnimationFrame(gameLoop);
     }
 
-    function drawCircle(img, x, y, border) {
+    function spawnKitty() {
+        if(!gameActive) return;
+        let kX = Math.random() * (canvas.width - charSize);
+        let kY = Math.random() * (canvas.height - charSize);
+        if(!checkWall(kX, kY)) kitties.push({ x: kX, y: kY, life: 200 });
+        setTimeout(spawnKitty, 3000);
+    }
+
+    function drawFrame(img, x, y, color) {
         ctx.save();
-        ctx.beginPath(); ctx.arc(x+charSize/2, y+charSize/2, charSize/2, 0, Math.PI*2); ctx.clip();
+        ctx.beginPath(); ctx.arc(x + charSize/2, y + charSize/2, charSize/2, 0, Math.PI*2); ctx.clip();
         if(img.complete) ctx.drawImage(img, x, y, charSize, charSize);
         ctx.restore();
-        ctx.strokeStyle = border; ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.arc(x+charSize/2, y+charSize/2, charSize/2, 0, Math.PI*2); ctx.stroke();
+        ctx.strokeStyle = color; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(x + charSize/2, y + charSize/2, charSize/2, 0, Math.PI*2); ctx.stroke();
     }
 
     function gameLoop() {
         if(!gameActive) return;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Draw Walls
+        // Draw Structured Walls
         ctx.fillStyle = "#fda4af";
-        walls.forEach(w => { ctx.beginPath(); ctx.roundRect(w.x, w.y, w.w, w.h, 4); ctx.fill(); });
+        walls.forEach(w => { ctx.beginPath(); ctx.roundRect(w.x, w.y, w.w, w.h, 6); ctx.fill(); });
 
-        // Prova Movement
+        // Prova logic - Stop if hitting wall
         if (!checkWall(prova.x + prova.vx, prova.y)) prova.x += prova.vx;
+        else prova.vx = 0;
         if (!checkWall(prova.x, prova.y + prova.vy)) prova.y += prova.vy;
+        else prova.vy = 0;
 
-        // Shuaib Movement (Auto-bounce)
+        // Shuaib logic - Bounce
         if (checkWall(shuaib.x + shuaib.vx, shuaib.y)) shuaib.vx *= -1;
         if (checkWall(shuaib.x, shuaib.y + shuaib.vy)) shuaib.vy *= -1;
         shuaib.x += shuaib.vx; shuaib.y += shuaib.vy;
 
-        // Catch Logic
+        // Catch
         if (Math.hypot(prova.x - shuaib.x, prova.y - shuaib.y) < charSize) {
             score += 10; document.getElementById('score').innerText = score;
             twinkle = 30;
-            shuaib.x = Math.random()*(canvas.width-charSize); shuaib.y = Math.random()*(canvas.height-charSize);
-            while(checkWall(shuaib.x, shuaib.y)) { // Ensure Shuaib doesn't spawn in a wall
-                shuaib.x = Math.random()*(canvas.width-charSize);
-                shuaib.y = Math.random()*(canvas.height-charSize);
-            }
+            shuaib.x = Math.random() * (canvas.width - charSize);
+            shuaib.y = Math.random() * (canvas.height - charSize);
         }
 
-        drawCircle(shuaibImg, shuaib.x, shuaib.y, "#60a5fa");
-        drawCircle(provaImg, prova.x, prova.y, "#f472b6");
+        // Draw Kitties
+        kitties.forEach((k, i) => {
+            k.life--;
+            if (Math.hypot(prova.x - k.x, prova.y - k.y) < 40) { gameActive = false; location.reload(); }
+            if (k.life <= 0) kitties.splice(i, 1);
+            drawFrame(kittyImg, k.x, k.y, "red");
+        });
+
+        drawFrame(shuaibImg, shuaib.x, shuaib.y, "#60a5fa");
+        drawFrame(provaImg, prova.x, prova.y, "#f472b6");
 
         if (twinkle > 0) {
             ctx.drawImage(iceCreamImg, canvas.width/2-60, canvas.height/2-100, 120, 120);
