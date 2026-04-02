@@ -91,6 +91,7 @@
     const scoreEl = document.getElementById('score');
     const lvlEl = document.getElementById('lvl');
     
+    // IMAGE LOADING - Paths updated for visibility
     const provaImg = new Image(); provaImg.src = '1000017694-removebg-preview.png'; 
     const shuaibImg = new Image(); shuaibImg.src = 'a97cf831-5384-4688-ac64-a6430ba0cc45-1_all_7690.jpg';
     const kittyImg = new Image(); kittyImg.src = 'kitty.jpg';
@@ -98,9 +99,9 @@
 
     let gameActive = false;
     let score = 0; let level = 1;
-    let charSize = 35; // Extra small as requested
-    let prova = { x: 50, y: 50, vx: 0, vy: 0, speed: 2.5 }; // Slower Prova
-    let shuaib = { x: 200, y: 200, vx: 1.5, vy: 1.5 }; // Slower Shuaib
+    let charSize = 40; // Set to 40 as requested
+    let prova = { x: 50, y: 50, vx: 0, vy: 0, speed: 2.5 }; 
+    let shuaib = { x: 200, y: 200, vx: 1.5, vy: 1.5 }; 
     let kitties = [];
     let twinkleTimer = 0;
 
@@ -124,7 +125,7 @@
         kitties.push({
             x: Math.random() * (canvas.width - charSize),
             y: Math.random() * (canvas.height - charSize),
-            life: 400 // Kitties stay longer to feel less chaotic
+            life: 450 
         });
         setTimeout(spawnKitty, Math.max(2000, 5000 - (level * 200)));
     }
@@ -144,11 +145,17 @@
         ctx.beginPath();
         ctx.arc(x + size/2, y + size/2, size/2, 0, Math.PI*2);
         ctx.clip();
+        
+        // Safety check to draw circle if image hasn't loaded yet
         if(img.complete && img.naturalWidth !== 0) {
             ctx.drawImage(img, x, y, size, size);
         } else {
             ctx.fillStyle = color;
             ctx.fill();
+            ctx.fillStyle = "white";
+            ctx.font = "bold 12px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText("IMG", x + size/2, y + size/2 + 5);
         }
         ctx.restore();
         ctx.strokeStyle = "white"; ctx.lineWidth = 2; ctx.stroke();
@@ -166,7 +173,7 @@
         if(shuaib.x < 0 || shuaib.x > canvas.width - charSize) shuaib.vx *= -1;
         if(shuaib.y < 0 || shuaib.y > canvas.height - charSize) shuaib.vy *= -1;
 
-        if(Math.hypot(prova.x - shuaib.x, prova.y - shuaib.y) < charSize + 5) {
+        if(Math.hypot(prova.x - shuaib.x, prova.y - shuaib.y) < charSize) {
             score += 10; scoreEl.innerText = score;
             shuaib.x = Math.random() * (canvas.width - charSize);
             shuaib.y = Math.random() * (canvas.height - charSize);
