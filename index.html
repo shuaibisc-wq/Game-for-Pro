@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Prova's Maze 🍦</title>
+<title>Ultimate Prova Game 😈</title>
 
 <style>
-* { margin:0; padding:0; box-sizing:border-box; touch-action:none; }
-body { overflow:hidden; font-family:sans-serif; }
+*{margin:0;padding:0;box-sizing:border-box;touch-action:none;}
+body{overflow:hidden;font-family:sans-serif;}
 
 #ui{
  position:absolute;
@@ -51,7 +51,7 @@ Score: <span id="score">0</span> | Lvl: <span id="lvl">1</span>
 <canvas id="gameCanvas"></canvas>
 
 <div id="overlay">
-<h1>Catch Shuaib 🍦</h1>
+<h1>Catch Shuaib 😈🍦</h1>
 <button onclick="startGame()">Start</button>
 </div>
 
@@ -59,71 +59,62 @@ Score: <span id="score">0</span> | Lvl: <span id="lvl">1</span>
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// IMAGES (keep names EXACT)
+// IMAGES
 const provaImg = new Image(); provaImg.src = '1000017694-removebg-preview.png';
 const shuaibImg = new Image(); shuaibImg.src = 'a97cf831-5384-4688-ac64-a6430ba0cc45-1_all_7690-removebg-preview.png';
-const kittyImg = new Image(); kittyImg.src = 'kitty.jpg';
-const iceImg = new Image(); iceImg.src = 'discone.jpg';
 
-// WAIT FOR IMAGES
-let loaded = 0;
-const totalImages = 4;
-function checkLoaded(){
- loaded++;
- if(loaded === totalImages){
-  console.log("All images loaded ✅");
- }
-}
-provaImg.onload = checkLoaded;
-shuaibImg.onload = checkLoaded;
-kittyImg.onload = checkLoaded;
-iceImg.onload = checkLoaded;
-
-let gameActive=false, score=0, level=1, twinkle=0;
-
+let gameActive=false, score=0, level=1;
 const size=45;
-const friction=0.9;
-const maxSpeed=4;
 
-let prova={x:10,y:10,vx:0,vy:0};
-let shuaib={x:200,y:200,vx:2,vy:2};
-let walls=[], kitties=[];
+let prova={x:50,y:50,vx:0,vy:0};
+let shuaib={x:300,y:300,vx:0,vy:0};
+
+let walls=[];
 
 // RESIZE
 function resize(){
  canvas.width=innerWidth;
  canvas.height=innerHeight;
- createMaze();
+ createWalls();
 }
 window.addEventListener("resize",resize);
 
-// MAZE
-function createMaze(){
+// 🌈 ANIMATED WALLS
+function createWalls(){
  walls=[];
- let gap=size+15;
+ let gap=140;
 
- for(let x=gap;x<canvas.width;x+=gap*2){
-  for(let y=0;y<canvas.height;y+=gap){
-   walls.push({x:x,y:y,w:10,h:gap-5});
-  }
- }
-
- for(let y=gap;y<canvas.height;y+=gap*2){
-  for(let x=0;x<canvas.width;x+=gap){
-   walls.push({x:x,y:y,w:gap-5,h:10});
-  }
+ for(let i=0;i<6;i++){
+  walls.push({
+   x:Math.random()*canvas.width,
+   y:Math.random()*canvas.height,
+   w:120,
+   h:15,
+   dx:(Math.random()*2-1)*0.5,
+   dy:(Math.random()*2-1)*0.5
+  });
  }
 }
 
-// SAFE SPAWN
-function safeSpawn(){
- let x,y,tries=0;
- do{
-  x=Math.random()*(canvas.width-size);
-  y=Math.random()*(canvas.height-size);
-  tries++;
- }while(collide(x,y) && tries<20);
- return {x,y};
+// MOVE WALLS
+function animateWalls(){
+ walls.forEach(w=>{
+  w.x+=w.dx;
+  w.y+=w.dy;
+
+  if(w.x<0 || w.x+w.w>canvas.width) w.dx*=-1;
+  if(w.y<0 || w.y+w.h>canvas.height) w.dy*=-1;
+ });
+}
+
+// COLLISION
+function collide(x,y){
+ return walls.some(w =>
+  x < w.x+w.w &&
+  x+size > w.x &&
+  y < w.y+w.h &&
+  y+size > w.y
+ );
 }
 
 // START
@@ -132,22 +123,16 @@ function startGame(){
  document.getElementById("overlay").style.display="none";
 
  gameActive=true;
- score=0; level=1;
- document.getElementById("score").innerText=score;
- document.getElementById("lvl").innerText=level;
+ score=0;
+ level=1;
 
- prova={x:10,y:10,vx:0,vy:0};
-
- let pos=safeSpawn();
- shuaib={x:pos.x,y:pos.y,vx:2,vy:2};
-
- kitties=[];
- spawnKitty();
+ prova={x:50,y:50,vx:0,vy:0};
+ shuaib={x:300,y:300,vx:0,vy:0};
 
  requestAnimationFrame(loop);
 }
 
-// SWIPE CONTROL
+// TOUCH CONTROL
 let sx,sy;
 addEventListener("touchstart",e=>{
  sx=e.touches[0].clientX;
@@ -159,52 +144,15 @@ addEventListener("touchend",e=>{
  let dx=e.changedTouches[0].clientX-sx;
  let dy=e.changedTouches[0].clientY-sy;
 
- if(Math.abs(dx)>Math.abs(dy)){
-  prova.vx+=dx>0?3:-3;
- }else{
-  prova.vy+=dy>0?3:-3;
- }
+ prova.vx+=dx*0.05;
+ prova.vy+=dy*0.05;
 });
 
-// COLLISION
-function collide(x,y){
- if(x<0||y<0||x>canvas.width-size||y>canvas.height-size) return true;
-
- return walls.some(w =>
-  x < w.x+w.w &&
-  x+size > w.x &&
-  y < w.y+w.h &&
-  y+size > w.y
- );
-}
-
-// KITTY
-function spawnKitty(){
- if(!gameActive) return;
-
- let pos=safeSpawn();
- kitties.push({x:pos.x,y:pos.y,life:200});
-
- setTimeout(spawnKitty,3000);
-}
-
-// DRAW SAFE
+// DRAW
 function draw(img,x,y,color){
  if(!img.complete) return;
 
- ctx.save();
- ctx.beginPath();
- ctx.arc(x+size/2,y+size/2,size/2,0,Math.PI*2);
- ctx.clip();
-
  ctx.drawImage(img,x,y,size,size);
-
- ctx.restore();
-
- ctx.strokeStyle=color;
- ctx.beginPath();
- ctx.arc(x+size/2,y+size/2,size/2,0,Math.PI*2);
- ctx.stroke();
 }
 
 // BACKGROUND
@@ -216,88 +164,73 @@ function bg(){
  ctx.fillRect(0,0,canvas.width,canvas.height);
 }
 
+// 🧠 SMART AI (PREDICT PLAYER)
+function smartAI(){
+ let futureX = prova.x + prova.vx*10;
+ let futureY = prova.y + prova.vy*10;
+
+ let dx = futureX - shuaib.x;
+ let dy = futureY - shuaib.y;
+
+ let dist = Math.hypot(dx,dy);
+
+ if(dist > 1){
+  shuaib.vx += (dx/dist)*0.5;
+  shuaib.vy += (dy/dist)*0.5;
+ }
+
+ // speed limit
+ let speed = Math.hypot(shuaib.vx,shuaib.vy);
+ let max = 3 + level*0.3;
+
+ if(speed > max){
+  shuaib.vx = (shuaib.vx/speed)*max;
+  shuaib.vy = (shuaib.vy/speed)*max;
+ }
+
+ // bounce
+ if(collide(shuaib.x+shuaib.vx,shuaib.y)) shuaib.vx*=-1;
+ if(collide(shuaib.x,shuaib.y+shuaib.vy)) shuaib.vy*=-1;
+
+ shuaib.x += shuaib.vx;
+ shuaib.y += shuaib.vy;
+}
+
 // LOOP
 function loop(){
- try{
  if(!gameActive) return;
 
  bg();
 
+ animateWalls();
+
  ctx.fillStyle="#fb7185";
  walls.forEach(w=>ctx.fillRect(w.x,w.y,w.w,w.h));
 
- // smooth movement
- prova.vx*=friction;
- prova.vy*=friction;
-
- prova.vx=Math.max(-maxSpeed,Math.min(maxSpeed,prova.vx));
- prova.vy=Math.max(-maxSpeed,Math.min(maxSpeed,prova.vy));
+ // player physics
+ prova.vx*=0.9;
+ prova.vy*=0.9;
 
  if(!collide(prova.x+prova.vx,prova.y)) prova.x+=prova.vx;
  if(!collide(prova.x,prova.y+prova.vy)) prova.y+=prova.vy;
 
- // enemy AI
- let dx=prova.x-shuaib.x;
- let dy=prova.y-shuaib.y;
-
- if(Math.hypot(dx,dy)<200){
-  shuaib.vx+=dx*0.01;
-  shuaib.vy+=dy*0.01;
- }
-
- if(collide(shuaib.x+shuaib.vx,shuaib.y)) shuaib.vx*=-1;
- if(collide(shuaib.x,shuaib.y+shuaib.vy)) shuaib.vy*=-1;
-
- shuaib.x+=shuaib.vx;
- shuaib.y+=shuaib.vy;
+ smartAI();
 
  // catch
  if(Math.hypot(prova.x-shuaib.x,prova.y-shuaib.y)<size){
   score+=10;
   document.getElementById("score").innerText=score;
 
-  twinkle=20;
-
   if(score%50===0){
    level++;
    document.getElementById("lvl").innerText=level;
   }
-
-  let pos=safeSpawn();
-  shuaib.x=pos.x;
-  shuaib.y=pos.y;
  }
 
- // kitties
- kitties.forEach((k,i)=>{
-  k.life--;
-
-  if(Math.hypot(prova.x-k.x,prova.y-k.y)<30){
-   alert("Game Over 😭");
-   location.reload();
-  }
-
-  if(k.life<=0) kitties.splice(i,1);
-
-  draw(kittyImg,k.x,k.y,"red");
- });
-
- draw(shuaibImg,shuaib.x,shuaib.y,"blue");
- draw(provaImg,prova.x,prova.y,"pink");
-
- // effect
- if(twinkle>0){
-  ctx.globalAlpha=twinkle/20;
-  ctx.drawImage(iceImg,canvas.width/2-60,canvas.height/2-60,120,120);
-  ctx.globalAlpha=1;
-  twinkle--;
- }
+ draw(shuaibImg,shuaib.x,shuaib.y);
+ draw(provaImg,prova.x,prova.y);
 
  requestAnimationFrame(loop);
-
- }catch(e){
-  console.log("ERROR:",e);
- }
 }
 </script>
 
