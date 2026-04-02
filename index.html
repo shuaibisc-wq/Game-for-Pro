@@ -3,39 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Catch Shuaib: Pro Edition</title>
+    <title>Catch Shuaib: Prova Edition</title>
     <style>
         * { touch-action: none; user-select: none; box-sizing: border-box; }
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Arial', sans-serif; }
+        body { margin: 0; overflow: hidden; background: #0f172a; font-family: 'Arial Rounded MT Bold', Arial, sans-serif; }
         
         #game-container { 
             position: relative; 
             width: 100vw; 
             height: 100vh; 
-            /* REPLACE WITH YOUR BACKGROUND IMAGE LINK */
-            background: url('background.jpg') center/cover; 
+            background: radial-gradient(circle, #1e293b 0%, #0f172a 100%);
         }
 
         canvas { display: block; width: 100%; height: 100%; }
 
-        /* UI */
-        #ui { position: absolute; top: 15px; width: 100%; display: flex; justify-content: space-around; color: white; font-weight: bold; font-size: 1.5rem; text-shadow: 2px 2px 4px #000; z-index: 10; pointer-events: none; }
+        #ui { 
+            position: absolute; top: 20px; width: 100%; display: flex; 
+            justify-content: space-around; color: #f472b6; font-weight: bold; 
+            font-size: 1.4rem; z-index: 10; pointer-events: none;
+            text-shadow: 0 0 10px rgba(244, 114, 182, 0.5);
+        }
 
-        /* Menu Overlay */
         #overlay { 
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.8); display: flex; flex-direction: column; 
-            justify-content: center; align-items: center; z-index: 100; color: white; padding: 20px;
+            background: rgba(15, 23, 42, 0.9); display: flex; flex-direction: column; 
+            justify-content: center; align-items: center; z-index: 100; color: white; text-align: center;
         }
 
         button { 
-            padding: 20px 50px; font-size: 24px; background: #ff3399; color: white; 
+            padding: 18px 45px; font-size: 22px; background: #f472b6; color: white; 
             border: none; border-radius: 50px; cursor: pointer; font-weight: bold;
-            box-shadow: 0 6px #b30059;
+            box-shadow: 0 5px #be185d; transition: 0.2s;
         }
 
-        /* D-Pad Visual Guide (Optional - Hidden) */
-        .controls-hint { position: absolute; bottom: 20px; color: rgba(255,255,255,0.5); font-size: 0.8rem; pointer-events: none; }
+        button:active { transform: translateY(3px); box-shadow: 0 2px #be185d; }
     </style>
 </head>
 <body>
@@ -53,11 +54,10 @@
         <canvas id="gameCanvas"></canvas>
         
         <div id="overlay">
-            <h1>CATCH SHUAIB! 🏃‍♂️</h1>
-            <p>Tap Up, Down, Left, or Right to move Prova!</p>
-            <button onclick="startGame()">START GAME 🌸</button>
+            <h1 style="color: #f472b6; margin-bottom: 5px;">CATCH SHUAIB! 🏃‍♂️</h1>
+            <p style="margin-bottom: 25px; opacity: 0.8;">Tap the screen edges to move Prova!</p>
+            <button onclick="startGame()">START MISSION 🌸</button>
         </div>
-        <div class="controls-hint">Tap edges of the screen to change direction</div>
     </div>
 
 <script>
@@ -67,18 +67,19 @@
     const lvlEl = document.getElementById('lvl');
     const bgMusic = document.getElementById('bgMusic');
 
-    // LOAD IMAGES
     const provaImg = new Image();
-    provaImg.src = '1000017694-removebg-preview.png'; // Replace with your uploaded image name
+    provaImg.src = '1000017694-removebg-preview.png'; 
     const shuaibImg = new Image();
-    shuaibImg.src = 'a97cf831-5384-4688-ac64-a6430ba0cc45-1_all_7690-removebg-preview.png'; // Replace with your uploaded image name
+    shuaibImg.src = 'a97cf831-5384-4688-ac64-a6430ba0cc45-1_all_7690-removebg-preview.png';
 
     let gameActive = false;
     let score = 0;
     let level = 1;
 
-    let prova = { x: 50, y: 50, vx: 0, vy: 0, speed: 5, size: 70 };
-    let shuaib = { x: 200, y: 200, vx: 3, vy: 3, size: 70 };
+    // Bigger sizes & physics
+    let charSize = 90; 
+    let prova = { x: 50, y: 50, vx: 0, vy: 0, speed: 6 };
+    let shuaib = { x: 200, y: 200, vx: 3, vy: 3 };
 
     function resize() {
         canvas.width = window.innerWidth;
@@ -89,82 +90,103 @@
 
     function startGame() {
         document.getElementById('overlay').style.display = 'none';
-        bgMusic.play().catch(() => console.log("Music needs interaction"));
+        bgMusic.play().catch(() => console.log("Music interaction required"));
         gameActive = true;
         score = 0; level = 1;
-        prova.vx = prova.speed; // Start moving right
+        prova.vx = prova.speed;
         requestAnimationFrame(gameLoop);
     }
 
-    // 4-WAY TAP CONTROLS
+    // EASIER CONTROLS: Detects taps relative to the character or screen quadrants
     canvas.addEventListener('pointerdown', e => {
+        if (!gameActive) return;
         const x = e.clientX;
         const y = e.clientY;
         const w = canvas.width;
         const h = canvas.height;
 
-        // Reset velocities
         prova.vx = 0; prova.vy = 0;
 
-        // Logic: Check which quadrant was tapped
-        if (y < h * 0.3) { prova.vy = -prova.speed; } // Top 30% = UP
-        else if (y > h * 0.7) { prova.vy = prova.speed; } // Bottom 30% = DOWN
-        else if (x < w * 0.5) { prova.vx = -prova.speed; } // Left Half = LEFT
-        else { prova.vx = prova.speed; } // Right Half = RIGHT
+        if (y < h * 0.25) { prova.vy = -prova.speed; } 
+        else if (y > h * 0.75) { prova.vy = prova.speed; } 
+        else if (x < w * 0.5) { prova.vx = -prova.speed; } 
+        else { prova.vx = prova.speed; }
     });
+
+    function drawCircularImage(img, x, y, size, borderColor) {
+        ctx.save();
+        
+        // 1. Shadow/Glow
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = borderColor;
+        
+        // 2. Draw White Border Circle
+        ctx.beginPath();
+        ctx.arc(x + size/2, y + size/2, size/2 + 4, 0, Math.PI * 2);
+        ctx.fillStyle = "white";
+        ctx.fill();
+
+        // 3. Clip the image into a circle
+        ctx.beginPath();
+        ctx.arc(x + size/2, y + size/2, size/2, 0, Math.PI * 2);
+        ctx.clip();
+        
+        if (img.complete) {
+            ctx.drawImage(img, x, y, size, size);
+        } else {
+            ctx.fillStyle = "#334155";
+            ctx.fill();
+        }
+        
+        ctx.restore();
+
+        // 4. Draw Accent Ring
+        ctx.strokeStyle = borderColor;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(x + size/2, y + size/2, size/2 + 4, 0, Math.PI * 2);
+        ctx.stroke();
+    }
 
     function update() {
         if (!gameActive) return;
 
-        // Move Prova & Keep in Bounds
         prova.x += prova.vx;
         prova.y += prova.vy;
+        
+        // Boundaries
         if (prova.x < 0) prova.x = 0;
-        if (prova.x > canvas.width - prova.size) prova.x = canvas.width - prova.size;
+        if (prova.x > canvas.width - charSize) prova.x = canvas.width - charSize;
         if (prova.y < 0) prova.y = 0;
-        if (prova.y > canvas.height - prova.size) prova.y = canvas.height - prova.size;
+        if (prova.y > canvas.height - charSize) prova.y = canvas.height - charSize;
 
-        // Move Shuaib
         shuaib.x += shuaib.vx;
         shuaib.y += shuaib.vy;
-        if (shuaib.x < 0 || shuaib.x > canvas.width - shuaib.size) shuaib.vx *= -1;
-        if (shuaib.y < 0 || shuaib.y > canvas.height - shuaib.size) shuaib.vy *= -1;
+        if (shuaib.x < 0 || shuaib.x > canvas.width - charSize) shuaib.vx *= -1;
+        if (shuaib.y < 0 || shuaib.y > canvas.height - charSize) shuaib.vy *= -1;
 
-        // Catch Logic
-        let dist = Math.hypot(prova.x - shuaib.x, prova.y - shuaib.y);
-        if (dist < 60) {
+        let dist = Math.hypot((prova.x + charSize/2) - (shuaib.x + charSize/2), (prova.y + charSize/2) - (shuaib.y + charSize/2));
+        if (dist < charSize * 0.8) {
             score += 10;
             scoreEl.innerText = score;
-            shuaib.x = Math.random() * (canvas.width - 100);
-            shuaib.y = Math.random() * (canvas.height - 100);
+            shuaib.x = Math.random() * (canvas.width - charSize);
+            shuaib.y = Math.random() * (canvas.height - charSize);
             
             if (score % 50 === 0) {
                 level++;
                 lvlEl.innerText = level;
-                shuaib.vx *= 1.2; shuaib.vy *= 1.2;
-                prova.speed += 0.5;
+                shuaib.vx *= 1.15; shuaib.vy *= 1.15;
+                prova.speed += 0.4;
             }
         }
     }
 
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // Draw Shuaib
-        if (shuaibImg.complete) {
-            ctx.drawImage(shuaibImg, shuaib.x, shuaib.y, shuaib.size, shuaib.size);
-        } else {
-            ctx.font = "50px Arial";
-            ctx.fillText("🙋‍♂️", shuaib.x, shuaib.y + 50);
-        }
-
-        // Draw Prova
-        if (provaImg.complete) {
-            ctx.drawImage(provaImg, prova.x, prova.y, prova.size, prova.size);
-        } else {
-            ctx.font = "50px Arial";
-            ctx.fillText("👸", prova.x, prova.y + 50);
-        }
+        
+        // Draw characters with round format & borders
+        drawCircularImage(shuaibImg, shuaib.x, shuaib.y, charSize, "#60a5fa"); // Blue border for Shuaib
+        drawCircularImage(provaImg, prova.x, prova.y, charSize, "#f472b6");   // Pink border for Prova
     }
 
     function gameLoop() {
