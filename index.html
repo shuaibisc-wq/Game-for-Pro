@@ -59,18 +59,37 @@ Score: <span id="score">0</span> | Lvl: <span id="lvl">1</span>
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
+// IMAGES (keep names EXACT)
 const provaImg = new Image(); provaImg.src = '1000017694-removebg-preview.png';
 const shuaibImg = new Image(); shuaibImg.src = 'a97cf831-5384-4688-ac64-a6430ba0cc45-1_all_7690-removebg-preview.png';
 const kittyImg = new Image(); kittyImg.src = 'kitty.jpg';
 const iceImg = new Image(); iceImg.src = 'discone.jpg';
 
-let score=0, level=1, gameActive=false;
+// WAIT FOR IMAGES
+let loaded = 0;
+const totalImages = 4;
+function checkLoaded(){
+ loaded++;
+ if(loaded === totalImages){
+  console.log("All images loaded ✅");
+ }
+}
+provaImg.onload = checkLoaded;
+shuaibImg.onload = checkLoaded;
+kittyImg.onload = checkLoaded;
+iceImg.onload = checkLoaded;
+
+let gameActive=false, score=0, level=1, twinkle=0;
 
 const size=45;
+const friction=0.9;
+const maxSpeed=4;
+
 let prova={x:10,y:10,vx:0,vy:0};
 let shuaib={x:200,y:200,vx:2,vy:2};
 let walls=[], kitties=[];
 
+// RESIZE
 function resize(){
  canvas.width=innerWidth;
  canvas.height=innerHeight;
@@ -78,44 +97,65 @@ function resize(){
 }
 window.addEventListener("resize",resize);
 
+// MAZE
 function createMaze(){
  walls=[];
  let gap=size+15;
 
  for(let x=gap;x<canvas.width;x+=gap*2){
   for(let y=0;y<canvas.height;y+=gap){
-   walls.push({x:x,y:y,w:10,h:gap});
+   walls.push({x:x,y:y,w:10,h:gap-5});
   }
  }
 
  for(let y=gap;y<canvas.height;y+=gap*2){
   for(let x=0;x<canvas.width;x+=gap){
-   walls.push({x:x,y:y,w:gap,h:10});
+   walls.push({x:x,y:y,w:gap-5,h:10});
   }
  }
 }
 
+// SAFE SPAWN
+function safeSpawn(){
+ let x,y,tries=0;
+ do{
+  x=Math.random()*(canvas.width-size);
+  y=Math.random()*(canvas.height-size);
+  tries++;
+ }while(collide(x,y) && tries<20);
+ return {x,y};
+}
+
+// START
 function startGame(){
  resize();
  document.getElementById("overlay").style.display="none";
 
  gameActive=true;
  score=0; level=1;
+ document.getElementById("score").innerText=score;
+ document.getElementById("lvl").innerText=level;
 
  prova={x:10,y:10,vx:0,vy:0};
- shuaib={x:canvas.width-80,y:canvas.height-80,vx:2,vy:2};
 
+ let pos=safeSpawn();
+ shuaib={x:pos.x,y:pos.y,vx:2,vy:2};
+
+ kitties=[];
  spawnKitty();
- loop();
+
+ requestAnimationFrame(loop);
 }
 
-// swipe
+// SWIPE CONTROL
 let sx,sy;
 addEventListener("touchstart",e=>{
  sx=e.touches[0].clientX;
  sy=e.touches[0].clientY;
 });
 addEventListener("touchend",e=>{
+ if(!gameActive) return;
+
  let dx=e.changedTouches[0].clientX-sx;
  let dy=e.changedTouches[0].clientY-sy;
 
@@ -126,7 +166,10 @@ addEventListener("touchend",e=>{
  }
 });
 
+// COLLISION
 function collide(x,y){
+ if(x<0||y<0||x>canvas.width-size||y>canvas.height-size) return true;
+
  return walls.some(w =>
   x < w.x+w.w &&
   x+size > w.x &&
@@ -135,25 +178,27 @@ function collide(x,y){
  );
 }
 
+// KITTY
 function spawnKitty(){
  if(!gameActive) return;
 
- let x=Math.random()*(canvas.width-size);
- let y=Math.random()*(canvas.height-size);
-
- if(!collide(x,y)){
-  kitties.push({x,y,life:200});
- }
+ let pos=safeSpawn();
+ kitties.push({x:pos.x,y:pos.y,life:200});
 
  setTimeout(spawnKitty,3000);
 }
 
+// DRAW SAFE
 function draw(img,x,y,color){
+ if(!img.complete) return;
+
  ctx.save();
  ctx.beginPath();
  ctx.arc(x+size/2,y+size/2,size/2,0,Math.PI*2);
  ctx.clip();
+
  ctx.drawImage(img,x,y,size,size);
+
  ctx.restore();
 
  ctx.strokeStyle=color;
@@ -162,6 +207,7 @@ function draw(img,x,y,color){
  ctx.stroke();
 }
 
+// BACKGROUND
 function bg(){
  let g=ctx.createLinearGradient(0,0,canvas.width,canvas.height);
  g.addColorStop(0,"#ffe4e6");
@@ -170,7 +216,9 @@ function bg(){
  ctx.fillRect(0,0,canvas.width,canvas.height);
 }
 
+// LOOP
 function loop(){
+ try{
  if(!gameActive) return;
 
  bg();
@@ -178,14 +226,17 @@ function loop(){
  ctx.fillStyle="#fb7185";
  walls.forEach(w=>ctx.fillRect(w.x,w.y,w.w,w.h));
 
- // smooth
- prova.vx*=0.9;
- prova.vy*=0.9;
+ // smooth movement
+ prova.vx*=friction;
+ prova.vy*=friction;
+
+ prova.vx=Math.max(-maxSpeed,Math.min(maxSpeed,prova.vx));
+ prova.vy=Math.max(-maxSpeed,Math.min(maxSpeed,prova.vy));
 
  if(!collide(prova.x+prova.vx,prova.y)) prova.x+=prova.vx;
  if(!collide(prova.x,prova.y+prova.vy)) prova.y+=prova.vy;
 
- // enemy
+ // enemy AI
  let dx=prova.x-shuaib.x;
  let dy=prova.y-shuaib.y;
 
@@ -205,16 +256,19 @@ function loop(){
   score+=10;
   document.getElementById("score").innerText=score;
 
+  twinkle=20;
+
   if(score%50===0){
    level++;
    document.getElementById("lvl").innerText=level;
   }
 
-  shuaib.x=Math.random()*canvas.width;
-  shuaib.y=Math.random()*canvas.height;
+  let pos=safeSpawn();
+  shuaib.x=pos.x;
+  shuaib.y=pos.y;
  }
 
- // kitty
+ // kitties
  kitties.forEach((k,i)=>{
   k.life--;
 
@@ -231,7 +285,19 @@ function loop(){
  draw(shuaibImg,shuaib.x,shuaib.y,"blue");
  draw(provaImg,prova.x,prova.y,"pink");
 
+ // effect
+ if(twinkle>0){
+  ctx.globalAlpha=twinkle/20;
+  ctx.drawImage(iceImg,canvas.width/2-60,canvas.height/2-60,120,120);
+  ctx.globalAlpha=1;
+  twinkle--;
+ }
+
  requestAnimationFrame(loop);
+
+ }catch(e){
+  console.log("ERROR:",e);
+ }
 }
 </script>
 
