@@ -3,61 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Catch Shuaib: Prova Edition</title>
+    <title>Catch Shuaib: Kitty Alert!</title>
     <style>
         * { touch-action: none; user-select: none; box-sizing: border-box; }
-        body { margin: 0; overflow: hidden; background: #0f172a; font-family: 'Arial Rounded MT Bold', Arial, sans-serif; }
+        body { margin: 0; overflow: hidden; background: #0f172a; font-family: 'Arial', sans-serif; display: flex; flex-direction: column; height: 100vh; }
         
-        #game-container { 
+        #game-area { 
             position: relative; 
-            width: 100vw; 
-            height: 100vh; 
-            background: radial-gradient(circle, #1e293b 0%, #0f172a 100%);
+            width: 100%; 
+            flex-grow: 1; 
+            background: #1e293b; 
+            border: 5px solid #f472b6; /* The Wall Border */
+            overflow: hidden;
         }
 
         canvas { display: block; width: 100%; height: 100%; }
 
-        #ui { 
-            position: absolute; top: 20px; width: 100%; display: flex; 
-            justify-content: space-around; color: #f472b6; font-weight: bold; 
-            font-size: 1.4rem; z-index: 10; pointer-events: none;
-            text-shadow: 0 0 10px rgba(244, 114, 182, 0.5);
+        #ui { position: absolute; top: 10px; width: 100%; display: flex; justify-content: space-around; color: white; font-weight: bold; z-index: 10; pointer-events: none; }
+
+        /* D-PAD CONTROLS */
+        #controls { 
+            height: 180px; 
+            background: #0f172a; 
+            display: grid; 
+            grid-template-areas: ". up ." "left . right" ". down .";
+            justify-content: center; 
+            align-content: center; 
+            gap: 10px;
+            padding: 10px;
         }
 
-        #overlay { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(15, 23, 42, 0.9); display: flex; flex-direction: column; 
-            justify-content: center; align-items: center; z-index: 100; color: white; text-align: center;
+        .btn { 
+            width: 65px; height: 65px; background: #334155; color: white; 
+            border: 2px solid #f472b6; border-radius: 15px; 
+            display: flex; justify-content: center; align-items: center; 
+            font-size: 24px; font-weight: bold;
         }
+        .btn:active { background: #f472b6; transform: scale(0.9); }
+        .up { grid-area: up; } .down { grid-area: down; } .left { grid-area: left; } .right { grid-area: right; }
 
-        button { 
-            padding: 18px 45px; font-size: 22px; background: #f472b6; color: white; 
-            border: none; border-radius: 50px; cursor: pointer; font-weight: bold;
-            box-shadow: 0 5px #be185d; transition: 0.2s;
-        }
-
-        button:active { transform: translateY(3px); box-shadow: 0 2px #be185d; }
+        /* Overlays */
+        #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; color: white; text-align: center; }
+        button#start-btn { padding: 15px 40px; font-size: 20px; background: #f472b6; color: white; border: none; border-radius: 50px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <audio id="bgMusic" loop>
-        <source src="music.mp3" type="audio/mpeg">
-    </audio>
+    <audio id="bgMusic" loop><source src="music.mp3" type="audio/mpeg"></audio>
 
-    <div id="game-container">
+    <div id="game-area">
         <div id="ui">
-            <div>Level: <span id="lvl">1</span></div>
             <div>Score: <span id="score">0</span></div>
+            <div>Level: <span id="lvl">1</span></div>
         </div>
-        
         <canvas id="gameCanvas"></canvas>
-        
         <div id="overlay">
-            <h1 style="color: #f472b6; margin-bottom: 5px;">CATCH SHUAIB! 🏃‍♂️</h1>
-            <p style="margin-bottom: 25px; opacity: 0.8;">Tap the screen edges to move Prova!</p>
-            <button onclick="startGame()">START MISSION 🌸</button>
+            <h1 id="msg">CATCH SHUAIB! 🍦</h1>
+            <p id="sub-msg">Avoid the Kitties! They want the ice cream!</p>
+            <button id="start-btn" onclick="startGame()">START GAME</button>
         </div>
+    </div>
+
+    <div id="controls">
+        <div class="btn up" onpointerdown="move('up')">▲</div>
+        <div class="btn left" onpointerdown="move('left')">◀</div>
+        <div class="btn right" onpointerdown="move('right')">▶</div>
+        <div class="btn down" onpointerdown="move('down')">▼</div>
     </div>
 
 <script>
@@ -65,133 +76,126 @@
     const ctx = canvas.getContext('2d');
     const scoreEl = document.getElementById('score');
     const lvlEl = document.getElementById('lvl');
-    const bgMusic = document.getElementById('bgMusic');
-
-    const provaImg = new Image();
-    provaImg.src = '1000017694-removebg-preview.png'; 
-    const shuaibImg = new Image();
-    shuaibImg.src = 'a97cf831-5384-4688-ac64-a6430ba0cc45-1_all_7690-removebg-preview.png';
+    
+    // IMAGE LOADING
+    const provaImg = new Image(); provaImg.src = '1000017694-removebg-preview.png'; 
+    const shuaibImg = new Image(); shuaibImg.src = 'a97cf831-5384-4688-ac64-a6430ba0cc45-1_all_7690-removebg-preview.png';
+    const kittyImg = new Image(); kittyImg.src = 'kitty.jpg';
+    const iceCreamImg = new Image(); iceCreamImg.src = 'discone.jpg';
 
     let gameActive = false;
-    let score = 0;
-    let level = 1;
-
-    // Bigger sizes & physics
-    let charSize = 90; 
-    let prova = { x: 50, y: 50, vx: 0, vy: 0, speed: 6 };
-    let shuaib = { x: 200, y: 200, vx: 3, vy: 3 };
+    let score = 0; let level = 1;
+    let charSize = 70;
+    let prova = { x: 50, y: 50, vx: 0, vy: 0, speed: 5 };
+    let shuaib = { x: 200, y: 200, vx: 2, vy: 2 };
+    let kitties = [];
+    let showIceCream = false; let iceCreamTimer = 0;
 
     function resize() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = canvas.parentElement.clientHeight;
     }
     window.addEventListener('resize', resize);
     resize();
 
+    function move(dir) {
+        prova.vx = 0; prova.vy = 0;
+        if(dir === 'up') prova.vy = -prova.speed;
+        if(dir === 'down') prova.vy = prova.speed;
+        if(dir === 'left') prova.vx = -prova.speed;
+        if(dir === 'right') prova.vx = prova.speed;
+    }
+
+    function spawnKitty() {
+        if(!gameActive) return;
+        kitties.push({
+            x: Math.random() * (canvas.width - charSize),
+            y: Math.random() * (canvas.height - charSize),
+            life: 200
+        });
+        setTimeout(spawnKitty, Math.max(1000, 3000 - (level * 200)));
+    }
+
     function startGame() {
         document.getElementById('overlay').style.display = 'none';
-        bgMusic.play().catch(() => console.log("Music interaction required"));
-        gameActive = true;
-        score = 0; level = 1;
-        prova.vx = prova.speed;
+        gameActive = true; score = 0; level = 1; kitties = [];
+        prova.x = 50; prova.y = 50; prova.vx = 0; prova.vy = 0;
+        scoreEl.innerText = score; lvlEl.innerText = level;
+        spawnKitty();
         requestAnimationFrame(gameLoop);
     }
 
-    // EASIER CONTROLS: Detects taps relative to the character or screen quadrants
-    canvas.addEventListener('pointerdown', e => {
-        if (!gameActive) return;
-        const x = e.clientX;
-        const y = e.clientY;
-        const w = canvas.width;
-        const h = canvas.height;
-
-        prova.vx = 0; prova.vy = 0;
-
-        if (y < h * 0.25) { prova.vy = -prova.speed; } 
-        else if (y > h * 0.75) { prova.vy = prova.speed; } 
-        else if (x < w * 0.5) { prova.vx = -prova.speed; } 
-        else { prova.vx = prova.speed; }
-    });
-
-    function drawCircularImage(img, x, y, size, borderColor) {
+    function drawCircle(img, x, y, size, border) {
         ctx.save();
-        
-        // 1. Shadow/Glow
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = borderColor;
-        
-        // 2. Draw White Border Circle
         ctx.beginPath();
-        ctx.arc(x + size/2, y + size/2, size/2 + 4, 0, Math.PI * 2);
-        ctx.fillStyle = "white";
-        ctx.fill();
-
-        // 3. Clip the image into a circle
-        ctx.beginPath();
-        ctx.arc(x + size/2, y + size/2, size/2, 0, Math.PI * 2);
+        ctx.arc(x + size/2, y + size/2, size/2, 0, Math.PI*2);
         ctx.clip();
-        
-        if (img.complete) {
-            ctx.drawImage(img, x, y, size, size);
-        } else {
-            ctx.fillStyle = "#334155";
-            ctx.fill();
-        }
-        
+        if(img.complete) ctx.drawImage(img, x, y, size, size);
+        else { ctx.fillStyle = "gray"; ctx.fill(); }
         ctx.restore();
-
-        // 4. Draw Accent Ring
-        ctx.strokeStyle = borderColor;
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(x + size/2, y + size/2, size/2 + 4, 0, Math.PI * 2);
-        ctx.stroke();
+        ctx.strokeStyle = border; ctx.lineWidth = 3;
+        ctx.strokeRect(x, y, size, size); // Square border as requested for "Walls" feel
     }
 
     function update() {
-        if (!gameActive) return;
+        if(!gameActive) return;
 
-        prova.x += prova.vx;
-        prova.y += prova.vy;
-        
-        // Boundaries
-        if (prova.x < 0) prova.x = 0;
-        if (prova.x > canvas.width - charSize) prova.x = canvas.width - charSize;
-        if (prova.y < 0) prova.y = 0;
-        if (prova.y > canvas.height - charSize) prova.y = canvas.height - charSize;
+        // Prova movement & Walls
+        prova.x += prova.vx; prova.y += prova.vy;
+        if(prova.x < 0) prova.x = 0; if(prova.x > canvas.width - charSize) prova.x = canvas.width - charSize;
+        if(prova.y < 0) prova.y = 0; if(prova.y > canvas.height - charSize) prova.y = canvas.height - charSize;
 
-        shuaib.x += shuaib.vx;
-        shuaib.y += shuaib.vy;
-        if (shuaib.x < 0 || shuaib.x > canvas.width - charSize) shuaib.vx *= -1;
-        if (shuaib.y < 0 || shuaib.y > canvas.height - charSize) shuaib.vy *= -1;
+        // Shuaib movement
+        shuaib.x += shuaib.vx; shuaib.y += shuaib.vy;
+        if(shuaib.x < 0 || shuaib.x > canvas.width - charSize) shuaib.vx *= -1;
+        if(shuaib.y < 0 || shuaib.y > canvas.height - charSize) shuaib.vy *= -1;
 
-        let dist = Math.hypot((prova.x + charSize/2) - (shuaib.x + charSize/2), (prova.y + charSize/2) - (shuaib.y + charSize/2));
-        if (dist < charSize * 0.8) {
-            score += 10;
-            scoreEl.innerText = score;
+        // Catch Shuaib
+        if(Math.hypot(prova.x - shuaib.x, prova.y - shuaib.y) < 50) {
+            score += 10; scoreEl.innerText = score;
             shuaib.x = Math.random() * (canvas.width - charSize);
             shuaib.y = Math.random() * (canvas.height - charSize);
-            
-            if (score % 50 === 0) {
-                level++;
-                lvlEl.innerText = level;
-                shuaib.vx *= 1.15; shuaib.vy *= 1.15;
-                prova.speed += 0.4;
-            }
+            showIceCream = true; iceCreamTimer = 30; // Show ice cream pic
+            if(score % 50 === 0) { level++; lvlEl.innerText = level; shuaib.vx *= 1.2; }
         }
+
+        // Kitty Collision (Game Over)
+        kitties.forEach((k, i) => {
+            k.life--;
+            if(Math.hypot(prova.x - k.x, prova.y - k.y) < 50) {
+                gameOver("OH NO! THE KITTY STOLE IT! 😿");
+            }
+            if(k.life <= 0) kitties.splice(i, 1);
+        });
+    }
+
+    function gameOver(msg) {
+        gameActive = false;
+        document.getElementById('overlay').style.display = 'flex';
+        document.getElementById('msg').innerText = "GAME OVER";
+        document.getElementById('sub-msg').innerText = msg + "\nFinal Score: " + score;
     }
 
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        // Draw characters with round format & borders
-        drawCircularImage(shuaibImg, shuaib.x, shuaib.y, charSize, "#60a5fa"); // Blue border for Shuaib
-        drawCircularImage(provaImg, prova.x, prova.y, charSize, "#f472b6");   // Pink border for Prova
+        // Draw Prova & Shuaib
+        drawCircle(provaImg, prova.x, prova.y, charSize, "#f472b6");
+        drawCircle(shuaibImg, shuaib.x, shuaib.y, charSize, "#60a5fa");
+
+        // Draw Kitties
+        kitties.forEach(k => drawCircle(kittyImg, k.x, k.y, charSize, "red"));
+
+        // Draw Discone Ice Cream if caught
+        if(showIceCream && iceCreamTimer > 0) {
+            ctx.drawImage(iceCreamImg, canvas.width/2 - 50, canvas.height/2 - 50, 100, 100);
+            iceCreamTimer--;
+        }
     }
 
     function gameLoop() {
         update(); draw();
-        if (gameActive) requestAnimationFrame(gameLoop);
+        if(gameActive) requestAnimationFrame(gameLoop);
     }
 </script>
 </body>
