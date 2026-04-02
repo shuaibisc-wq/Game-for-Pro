@@ -3,42 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Prova's 1D Challenge 🍦</title>
+    <title>Fixed Maze: Swipe Edition</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Pacifico&display=swap');
         * { touch-action: none; user-select: none; box-sizing: border-box; }
-        body { margin: 0; padding: 0; overflow: hidden; background: #fff1f2; font-family: sans-serif; height: 100vh; }
-        
-        #game-container { position: relative; width: 100vw; height: 100vh; background: #fffafa; overflow: hidden; }
+        body { margin: 0; padding: 0; overflow: hidden; background: #fff1f2; height: 100vh; }
+        #game-container { position: relative; width: 100vw; height: 100vh; background: #fffafa; }
         canvas { display: block; width: 100%; height: 100%; }
-
-        #ui { 
-            position: absolute; top: 15px; width: 100%; display: flex; 
-            justify-content: space-around; color: #e11d48; font-weight: bold; 
-            z-index: 5; font-size: 1.1rem; pointer-events: none;
-        }
-
-        #overlay { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(255,255,255,0.85); display: flex; flex-direction: column; 
-            justify-content: center; align-items: center; z-index: 100; text-align: center; 
-        }
-        button { padding: 15px 45px; background: #fb7185; color: white; border: none; border-radius: 50px; font-size: 1.2rem; font-weight: bold; box-shadow: 0 4px 15px rgba(251, 113, 133, 0.4); }
+        #ui { position: absolute; top: 15px; width: 100%; display: flex; justify-content: space-around; color: #e11d48; font-weight: bold; z-index: 10; pointer-events: none; }
+        #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.85); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; text-align: center; }
+        button { padding: 15px 45px; background: #fb7185; color: white; border: none; border-radius: 50px; font-size: 1.2rem; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div id="game-container">
-        <div id="ui">
-            <span>Score: <span id="score">0</span></span>
-            <span>Lvl: <span id="lvl">1</span></span>
-        </div>
+        <div id="ui"><span>Score: <span id="score">0</span></span><span>Lvl: <span id="lvl">1</span></span></div>
         <canvas id="gameCanvas"></canvas>
-        
         <div id="overlay">
-            <h1 style="font-family: 'Pacifico'; color: #e11d48; font-size: 2.2rem; margin-bottom: 10px;">Narrow Maze</h1>
-            <p style="color: #be185d; margin-bottom: 20px;">Swipe Up, Down, Left, or Right!</p>
-            <button onclick="startGame()">Start Game ✨</button>
+            <h1 style="font-family: 'Pacifico'; color: #e11d48;">Maze Fixed! 🍦</h1>
+            <p style="color: #be185d;">Swipe to catch Shuaib in the tracks!</p>
+            <button onclick="startGame()">Play Now ✨</button>
         </div>
     </div>
 
@@ -53,51 +38,34 @@
 
     let gameActive = false, score = 0, level = 1, twinkle = 0;
     const charSize = 45; 
-    const moveSpeed = 4.5;
+    const speed = 4.5;
     
     let prova = { x: 10, y: 10, vx: 0, vy: 0 };
-    let shuaib = { x: 100, y: 100, vx: 2, vy: 2 };
-    let kitties = [], walls = [];
+    let shuaib = { x: 200, y: 200, vx: 2.5, vy: 2.5 };
+    let walls = [], kitties = [];
 
-    // SWIPE DETECTION
-    let startX, startY;
-    canvas.addEventListener('touchstart', e => {
-        startX = e.touches[0].clientX;
-        startY = e.touches[0].clientY;
-    });
-
-    canvas.addEventListener('touchend', e => {
-        if (!gameActive) return;
-        const endX = e.changedTouches[0].clientX;
-        const endY = e.changedTouches[0].clientY;
-        const dx = endX - startX;
-        const dy = endY - startY;
-
-        // Threshold to avoid accidental taps
-        if (Math.abs(dx) > 20 || Math.abs(dy) > 20) {
+    // Swipe Handling
+    let sX, sY;
+    window.addEventListener('touchstart', e => { sX = e.touches[0].clientX; sY = e.touches[0].clientY; });
+    window.addEventListener('touchend', e => {
+        if(!gameActive) return;
+        const dX = e.changedTouches[0].clientX - sX;
+        const dY = e.changedTouches[0].clientY - sY;
+        if(Math.abs(dX) > 20 || Math.abs(dY) > 20) {
             prova.vx = 0; prova.vy = 0;
-            if (Math.abs(dx) > Math.abs(dy)) {
-                prova.vx = dx > 0 ? moveSpeed : -moveSpeed;
-            } else {
-                prova.vy = dy > 0 ? moveSpeed : -moveSpeed;
-            }
+            if(Math.abs(dX) > Math.abs(dY)) prova.vx = dX > 0 ? speed : -speed;
+            else prova.vy = dY > 0 ? speed : -speed;
         }
     });
 
     function createMaze() {
         walls = [];
-        const corridor = charSize + 15; // Path width
-        const thickness = 10; // Wall thickness
-
-        // Generate a grid of walls with random "vacant" gaps
-        for (let x = corridor; x < canvas.width; x += corridor) {
-            for (let y = 0; y < canvas.height; y += corridor) {
-                // Randomly decide to place a vertical or horizontal wall segment
+        const gap = charSize + 25; // Wide enough paths
+        // Vertical Walls (Creating Lanes)
+        for (let x = gap; x < canvas.width; x += gap) {
+            for (let y = 0; y < canvas.height; y += gap) {
                 if (Math.random() > 0.4) {
-                    walls.push({ x: x, y: y, w: thickness, h: corridor });
-                }
-                if (Math.random() > 0.4) {
-                    walls.push({ x: x - corridor, y: y, w: corridor, h: thickness });
+                    walls.push({ x: x, y: y, w: 10, h: gap * 0.7 }); // Narrow wall blocks
                 }
             }
         }
@@ -110,35 +78,27 @@
     }
     window.addEventListener('resize', resize);
 
+    function checkWall(px, py) {
+        if (px < 0 || px > canvas.width - charSize || py < 0 || py > canvas.height - charSize) return true;
+        return walls.some(w => px < w.x + w.w && px + charSize > w.x && py < w.y + w.h && py + charSize > w.y);
+    }
+
     function startGame() {
         resize();
         document.getElementById('overlay').style.display = 'none';
         gameActive = true; score = 0; level = 1; kitties = [];
         prova.x = 10; prova.y = 10; prova.vx = 0; prova.vy = 0;
-        spawnKitty();
+        shuaib.x = canvas.width - 60; shuaib.y = canvas.height - 60;
         requestAnimationFrame(gameLoop);
     }
 
-    function spawnKitty() {
-        if(!gameActive) return;
-        kitties.push({ x: Math.random()*(canvas.width-charSize), y: Math.random()*(canvas.height-charSize), life: 200 });
-        setTimeout(spawnKitty, 3500 - (level*200));
-    }
-
-    function checkWall(px, py) {
-        // Border Check
-        if (px < 0 || px > canvas.width - charSize || py < 0 || py > canvas.height - charSize) return true;
-        // Internal Wall Check
-        return walls.some(w => px < w.x + w.w && px + charSize > w.x && py < w.y + w.h && py + charSize > w.y);
-    }
-
-    function drawChar(img, x, y, border) {
+    function drawCircle(img, x, y, border) {
         ctx.save();
-        ctx.beginPath(); ctx.arc(x + charSize/2, y + charSize/2, charSize/2, 0, Math.PI*2); ctx.clip();
+        ctx.beginPath(); ctx.arc(x+charSize/2, y+charSize/2, charSize/2, 0, Math.PI*2); ctx.clip();
         if(img.complete) ctx.drawImage(img, x, y, charSize, charSize);
         ctx.restore();
         ctx.strokeStyle = border; ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.arc(x + charSize/2, y + charSize/2, charSize/2, 0, Math.PI*2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(x+charSize/2, y+charSize/2, charSize/2, 0, Math.PI*2); ctx.stroke();
     }
 
     function gameLoop() {
@@ -147,43 +107,35 @@
 
         // Draw Walls
         ctx.fillStyle = "#fda4af";
-        walls.forEach(w => {
-            ctx.beginPath(); ctx.roundRect(w.x, w.y, w.w, w.h, 4); ctx.fill();
-        });
+        walls.forEach(w => { ctx.beginPath(); ctx.roundRect(w.x, w.y, w.w, w.h, 4); ctx.fill(); });
 
-        // Movement with Collision
+        // Prova Movement
         if (!checkWall(prova.x + prova.vx, prova.y)) prova.x += prova.vx;
         if (!checkWall(prova.x, prova.y + prova.vy)) prova.y += prova.vy;
 
-        // Shuaib Logic
+        // Shuaib Movement (Auto-bounce)
         if (checkWall(shuaib.x + shuaib.vx, shuaib.y)) shuaib.vx *= -1;
         if (checkWall(shuaib.x, shuaib.y + shuaib.vy)) shuaib.vy *= -1;
         shuaib.x += shuaib.vx; shuaib.y += shuaib.vy;
 
-        // Catch Shuaib
+        // Catch Logic
         if (Math.hypot(prova.x - shuaib.x, prova.y - shuaib.y) < charSize) {
             score += 10; document.getElementById('score').innerText = score;
             twinkle = 30;
             shuaib.x = Math.random()*(canvas.width-charSize); shuaib.y = Math.random()*(canvas.height-charSize);
-            if(score % 50 === 0) { level++; document.getElementById('lvl').innerText = level; }
+            while(checkWall(shuaib.x, shuaib.y)) { // Ensure Shuaib doesn't spawn in a wall
+                shuaib.x = Math.random()*(canvas.width-charSize);
+                shuaib.y = Math.random()*(canvas.height-charSize);
+            }
         }
 
-        // Kitty Collision
-        kitties.forEach((k, i) => {
-            k.life--;
-            if (Math.hypot(prova.x - k.x, prova.y - k.y) < charSize - 10) { gameActive = false; location.reload(); }
-            if (k.life <= 0) kitties.splice(i, 1);
-            drawChar(kittyImg, k.x, k.y, "#ef4444");
-        });
-
-        drawChar(shuaibImg, shuaib.x, shuaib.y, "#60a5fa");
-        drawChar(provaImg, prova.x, prova.y, "#f472b6");
+        drawCircle(shuaibImg, shuaib.x, shuaib.y, "#60a5fa");
+        drawCircle(provaImg, prova.x, prova.y, "#f472b6");
 
         if (twinkle > 0) {
-            ctx.drawImage(iceCreamImg, canvas.width/2-60, canvas.height/2-60, 120, 120);
+            ctx.drawImage(iceCreamImg, canvas.width/2-60, canvas.height/2-100, 120, 120);
             twinkle--;
         }
-
         requestAnimationFrame(gameLoop);
     }
 </script>
