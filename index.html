@@ -1,190 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prova's Maze 🍦</title>
+
+<style>
+* { margin:0; padding:0; box-sizing:border-box; touch-action:none; }
+body { overflow:hidden; font-family:sans-serif; }
+
+#ui{
+ position:absolute;
+ top:10px;
+ width:100%;
+ text-align:center;
+ color:#e11d48;
+ font-weight:bold;
+ z-index:5;
+}
+
+#overlay{
+ position:absolute;
+ width:100%;
+ height:100%;
+ display:flex;
+ flex-direction:column;
+ justify-content:center;
+ align-items:center;
+ background:rgba(255,255,255,0.9);
+ z-index:10;
+}
+
+button{
+ padding:12px 30px;
+ border:none;
+ border-radius:30px;
+ background:#fb7185;
+ color:white;
+ font-size:18px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="ui">
+Score: <span id="score">0</span> | Lvl: <span id="lvl">1</span>
+</div>
+
+<canvas id="gameCanvas"></canvas>
+
+<div id="overlay">
+<h1>Catch Shuaib 🍦</h1>
+<button onclick="startGame()">Start</button>
+</div>
+
 <script>
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-const provaImg = new Image(); provaImg.src = '1000017694-removebg-preview.png'; 
+const provaImg = new Image(); provaImg.src = '1000017694-removebg-preview.png';
 const shuaibImg = new Image(); shuaibImg.src = 'a97cf831-5384-4688-ac64-a6430ba0cc45-1_all_7690-removebg-preview.png';
 const kittyImg = new Image(); kittyImg.src = 'kitty.jpg';
-const iceCreamImg = new Image(); iceCreamImg.src = 'discone.jpg';
+const iceImg = new Image(); iceImg.src = 'discone.jpg';
 
-let gameActive = false, score = 0, level = 1, twinkle = 0;
+let score=0, level=1, gameActive=false;
 
-const charSize = 45; 
-const accel = 0.6;      // smooth acceleration
-const friction = 0.90;  // slow down gradually
-const maxSpeed = 4;
+const size=45;
+let prova={x:10,y:10,vx:0,vy:0};
+let shuaib={x:200,y:200,vx:2,vy:2};
+let walls=[], kitties=[];
 
-let prova = { x: 0, y: 0, vx: 0, vy: 0 };
-let shuaib = { x: 0, y: 0, vx: 2, vy: 2 };
-let walls = [], kitties = [];
+function resize(){
+ canvas.width=innerWidth;
+ canvas.height=innerHeight;
+ createMaze();
+}
+window.addEventListener("resize",resize);
 
-// SWIPE CONTROL (improved)
-let sX, sY;
-window.addEventListener('touchstart', e => {
-    sX = e.touches[0].clientX;
-    sY = e.touches[0].clientY;
+function createMaze(){
+ walls=[];
+ let gap=size+15;
+
+ for(let x=gap;x<canvas.width;x+=gap*2){
+  for(let y=0;y<canvas.height;y+=gap){
+   walls.push({x:x,y:y,w:10,h:gap});
+  }
+ }
+
+ for(let y=gap;y<canvas.height;y+=gap*2){
+  for(let x=0;x<canvas.width;x+=gap){
+   walls.push({x:x,y:y,w:gap,h:10});
+  }
+ }
+}
+
+function startGame(){
+ resize();
+ document.getElementById("overlay").style.display="none";
+
+ gameActive=true;
+ score=0; level=1;
+
+ prova={x:10,y:10,vx:0,vy:0};
+ shuaib={x:canvas.width-80,y:canvas.height-80,vx:2,vy:2};
+
+ spawnKitty();
+ loop();
+}
+
+// swipe
+let sx,sy;
+addEventListener("touchstart",e=>{
+ sx=e.touches[0].clientX;
+ sy=e.touches[0].clientY;
 });
-window.addEventListener('touchend', e => {
-    if(!gameActive) return;
-    const dX = e.changedTouches[0].clientX - sX;
-    const dY = e.changedTouches[0].clientY - sY;
+addEventListener("touchend",e=>{
+ let dx=e.changedTouches[0].clientX-sx;
+ let dy=e.changedTouches[0].clientY-sy;
 
-    if(Math.abs(dX) > Math.abs(dY)) {
-        prova.vx += dX > 0 ? accel*3 : -accel*3;
-    } else {
-        prova.vy += dY > 0 ? accel*3 : -accel*3;
-    }
+ if(Math.abs(dx)>Math.abs(dy)){
+  prova.vx+=dx>0?3:-3;
+ }else{
+  prova.vy+=dy>0?3:-3;
+ }
 });
 
-// BETTER MAZE
-function createMaze() {
-    walls = [];
-    const gap = 80;
-
-    for(let i=0;i<canvas.width;i+=100){
-        for(let j=0;j<canvas.height;j+=100){
-
-            if(Math.random() > 0.3){
-                walls.push({x:i, y:j, w:80, h:10});
-            }
-            if(Math.random() > 0.3){
-                walls.push({x:i, y:j, w:10, h:80});
-            }
-        }
-    }
+function collide(x,y){
+ return walls.some(w =>
+  x < w.x+w.w &&
+  x+size > w.x &&
+  y < w.y+w.h &&
+  y+size > w.y
+ );
 }
 
-function checkWall(px, py) {
-    return walls.some(w =>
-        px < w.x + w.w &&
-        px + charSize > w.x &&
-        py < w.y + w.h &&
-        py + charSize > w.y
-    );
+function spawnKitty(){
+ if(!gameActive) return;
+
+ let x=Math.random()*(canvas.width-size);
+ let y=Math.random()*(canvas.height-size);
+
+ if(!collide(x,y)){
+  kitties.push({x,y,life:200});
+ }
+
+ setTimeout(spawnKitty,3000);
 }
 
-function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    createMaze();
-}
-window.addEventListener('resize', resize);
+function draw(img,x,y,color){
+ ctx.save();
+ ctx.beginPath();
+ ctx.arc(x+size/2,y+size/2,size/2,0,Math.PI*2);
+ ctx.clip();
+ ctx.drawImage(img,x,y,size,size);
+ ctx.restore();
 
-function startGame() {
-    resize();
-    document.getElementById('overlay').style.display = 'none';
-    gameActive = true;
-    score = 0;
-
-    prova = { x: 20, y: 20, vx: 0, vy: 0 };
-    shuaib = { x: canvas.width-80, y: canvas.height-80, vx: 2, vy: 2 };
-    kitties = [];
-
-    spawnKitty();
-    requestAnimationFrame(gameLoop);
+ ctx.strokeStyle=color;
+ ctx.beginPath();
+ ctx.arc(x+size/2,y+size/2,size/2,0,Math.PI*2);
+ ctx.stroke();
 }
 
-function spawnKitty() {
-    if(!gameActive) return;
-
-    let tries = 0;
-    while(tries < 10){
-        let kX = Math.random() * (canvas.width - charSize);
-        let kY = Math.random() * (canvas.height - charSize);
-
-        if(!checkWall(kX, kY)){
-            kitties.push({ x: kX, y: kY, life: 300 });
-            break;
-        }
-        tries++;
-    }
-
-    setTimeout(spawnKitty, 4000);
+function bg(){
+ let g=ctx.createLinearGradient(0,0,canvas.width,canvas.height);
+ g.addColorStop(0,"#ffe4e6");
+ g.addColorStop(1,"#fbcfe8");
+ ctx.fillStyle=g;
+ ctx.fillRect(0,0,canvas.width,canvas.height);
 }
 
-// DRAW
-function drawFrame(img, x, y, color) {
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(x + charSize/2, y + charSize/2, charSize/2, 0, Math.PI*2);
-    ctx.clip();
-    if(img.complete) ctx.drawImage(img, x, y, charSize, charSize);
-    ctx.restore();
+function loop(){
+ if(!gameActive) return;
 
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(x + charSize/2, y + charSize/2, charSize/2, 0, Math.PI*2);
-    ctx.stroke();
-}
+ bg();
 
-// BACKGROUND ✨
-function drawBackground() {
-    let grad = ctx.createLinearGradient(0,0,canvas.width,canvas.height);
-    grad.addColorStop(0, "#ffe4e6");
-    grad.addColorStop(1, "#fbcfe8");
-    ctx.fillStyle = grad;
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-}
+ ctx.fillStyle="#fb7185";
+ walls.forEach(w=>ctx.fillRect(w.x,w.y,w.w,w.h));
 
-function gameLoop() {
-    if(!gameActive) return;
+ // smooth
+ prova.vx*=0.9;
+ prova.vy*=0.9;
 
-    drawBackground();
+ if(!collide(prova.x+prova.vx,prova.y)) prova.x+=prova.vx;
+ if(!collide(prova.x,prova.y+prova.vy)) prova.y+=prova.vy;
 
-    // walls
-    ctx.fillStyle = "#fb7185";
-    walls.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
+ // enemy
+ let dx=prova.x-shuaib.x;
+ let dy=prova.y-shuaib.y;
 
-    // SMOOTH MOVEMENT
-    prova.vx *= friction;
-    prova.vy *= friction;
+ if(Math.hypot(dx,dy)<200){
+  shuaib.vx+=dx*0.01;
+  shuaib.vy+=dy*0.01;
+ }
 
-    prova.vx = Math.max(-maxSpeed, Math.min(maxSpeed, prova.vx));
-    prova.vy = Math.max(-maxSpeed, Math.min(maxSpeed, prova.vy));
+ if(collide(shuaib.x+shuaib.vx,shuaib.y)) shuaib.vx*=-1;
+ if(collide(shuaib.x,shuaib.y+shuaib.vy)) shuaib.vy*=-1;
 
-    if (!checkWall(prova.x + prova.vx, prova.y)) prova.x += prova.vx;
-    if (!checkWall(prova.x, prova.y + prova.vy)) prova.y += prova.vy;
+ shuaib.x+=shuaib.vx;
+ shuaib.y+=shuaib.vy;
 
-    // SHUAIB smoother bounce
-    if (checkWall(shuaib.x + shuaib.vx, shuaib.y)) shuaib.vx *= -1;
-    if (checkWall(shuaib.x, shuaib.y + shuaib.vy)) shuaib.vy *= -1;
+ // catch
+ if(Math.hypot(prova.x-shuaib.x,prova.y-shuaib.y)<size){
+  score+=10;
+  document.getElementById("score").innerText=score;
 
-    shuaib.x += shuaib.vx;
-    shuaib.y += shuaib.vy;
+  if(score%50===0){
+   level++;
+   document.getElementById("lvl").innerText=level;
+  }
 
-    // CATCH
-    if (Math.hypot(prova.x - shuaib.x, prova.y - shuaib.y) < charSize) {
-        score += 10;
-        document.getElementById('score').innerText = score;
-        twinkle = 20;
+  shuaib.x=Math.random()*canvas.width;
+  shuaib.y=Math.random()*canvas.height;
+ }
 
-        shuaib.x = Math.random() * (canvas.width - charSize);
-        shuaib.y = Math.random() * (canvas.height - charSize);
-    }
+ // kitty
+ kitties.forEach((k,i)=>{
+  k.life--;
 
-    // KITTIES (fair collision)
-    kitties.forEach((k, i) => {
-        k.life--;
+  if(Math.hypot(prova.x-k.x,prova.y-k.y)<30){
+   alert("Game Over 😭");
+   location.reload();
+  }
 
-        if (Math.hypot(prova.x - k.x, prova.y - k.y) < 30) {
-            alert("Game Over 😭");
-            location.reload();
-        }
+  if(k.life<=0) kitties.splice(i,1);
 
-        if (k.life <= 0) kitties.splice(i, 1);
+  draw(kittyImg,k.x,k.y,"red");
+ });
 
-        drawFrame(kittyImg, k.x, k.y, "red");
-    });
+ draw(shuaibImg,shuaib.x,shuaib.y,"blue");
+ draw(provaImg,prova.x,prova.y,"pink");
 
-    drawFrame(shuaibImg, shuaib.x, shuaib.y, "#60a5fa");
-    drawFrame(provaImg, prova.x, prova.y, "#f472b6");
-
-    if (twinkle > 0) {
-        ctx.drawImage(iceCreamImg, canvas.width/2-60, canvas.height/2-100, 120, 120);
-        twinkle--;
-    }
-
-    requestAnimationFrame(gameLoop);
+ requestAnimationFrame(loop);
 }
 </script>
+
+</body>
+</html>
