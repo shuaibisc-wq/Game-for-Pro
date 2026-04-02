@@ -15,11 +15,10 @@
             display: flex; flex-direction: column; height: 100vh;
         }
 
-        /* The Play Area with Walls */
         #game-area { 
             position: relative; width: 100%; flex-grow: 1;
             background: linear-gradient(135deg, #fff1f2 0%, #fae8ff 100%);
-            border: 8px solid #fda4af; /* The Walls */
+            border: 8px solid #fda4af;
             border-radius: 20px 20px 0 0;
             margin-top: 10px; overflow: hidden;
         }
@@ -29,10 +28,9 @@
         #ui { 
             position: absolute; top: 15px; width: 100%; display: flex; 
             justify-content: space-around; color: #be185d; font-weight: 600; 
-            z-index: 10; font-size: 1.2rem;
+            z-index: 10; font-size: 1.2rem; pointer-events: none;
         }
 
-        /* Glassmorphism D-Pad */
         #controls { 
             height: 220px; background: white; 
             display: grid; grid-template-areas: ". up ." "left . right" ". down .";
@@ -50,7 +48,6 @@
         .btn:active { transform: scale(0.9); background: #f43f5e; color: white; }
         .up { grid-area: up; } .down { grid-area: down; } .left { grid-area: left; } .right { grid-area: right; }
 
-        /* Overlays */
         #overlay { 
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(5px);
@@ -76,8 +73,8 @@
         </div>
         <canvas id="gameCanvas"></canvas>
         <div id="overlay">
-            <h1>Sweet Catch</h1>
-            <p style="color: #9f1239;">Help Prova get her Discone from Shuaib!</p>
+            <h1 id="msg">Sweet Catch</h1>
+            <p id="sub-msg" style="color: #9f1239;">Help Prova get her Discone from Shuaib!</p>
             <button id="start-btn" onclick="startGame()">Start Game ✨</button>
         </div>
     </div>
@@ -97,15 +94,15 @@
     
     // IMAGE LOADING
     const provaImg = new Image(); provaImg.src = '1000017694-removebg-preview.png'; 
-    const shuaibImg = new Image(); shuaibImg.src = 'a97cf831-5384-4688-ac64-a6430ba0cc45-1_all_7690-removebg-preview.png';
+    const shuaibImg = new Image(); shuaibImg.src = 'a97cf831-5384-4688-ac64-a6430ba0cc45-1_all_7690.jpg'; // Fixed extension
     const kittyImg = new Image(); kittyImg.src = 'kitty.jpg';
     const iceCreamImg = new Image(); iceCreamImg.src = 'discone.jpg';
 
     let gameActive = false;
     let score = 0; let level = 1;
-    let charSize = 85; 
-    let prova = { x: 50, y: 50, vx: 0, vy: 0, speed: 5 };
-    let shuaib = { x: 200, y: 200, vx: 2.5, vy: 2.5 };
+    let charSize = 50; // Optimized small size
+    let prova = { x: 50, y: 50, vx: 0, vy: 0, speed: 3 }; // Slower speed for easier play
+    let shuaib = { x: 200, y: 200, vx: 2, vy: 2 };
     let kitties = [];
     let twinkleTimer = 0;
 
@@ -129,9 +126,9 @@
         kitties.push({
             x: Math.random() * (canvas.width - charSize),
             y: Math.random() * (canvas.height - charSize),
-            life: 250
+            life: 300
         });
-        setTimeout(spawnKitty, Math.max(1200, 3500 - (level * 300)));
+        setTimeout(spawnKitty, Math.max(1500, 4000 - (level * 250)));
     }
 
     function startGame() {
@@ -149,14 +146,18 @@
         ctx.beginPath();
         ctx.arc(x + size/2, y + size/2, size/2, 0, Math.PI*2);
         ctx.clip();
-        if(img.complete) ctx.drawImage(img, x, y, size, size);
-        else { ctx.fillStyle = "#ddd"; ctx.fill(); }
+        if(img.complete && img.naturalWidth !== 0) {
+            ctx.drawImage(img, x, y, size, size);
+        } else {
+            ctx.fillStyle = color;
+            ctx.fill();
+        }
         ctx.restore();
         
         ctx.beginPath();
         ctx.arc(x + size/2, y + size/2, size/2, 0, Math.PI*2);
-        ctx.strokeStyle = "white"; ctx.lineWidth = 4; ctx.stroke();
-        ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
+        ctx.strokeStyle = "white"; ctx.lineWidth = 3; ctx.stroke();
+        ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.stroke();
     }
 
     function update() {
@@ -170,21 +171,22 @@
         if(shuaib.x < 0 || shuaib.x > canvas.width - charSize) shuaib.vx *= -1;
         if(shuaib.y < 0 || shuaib.y > canvas.height - charSize) shuaib.vy *= -1;
 
-        if(Math.hypot(prova.x - shuaib.x, prova.y - shuaib.y) < 60) {
+        // Easier collision detection
+        if(Math.hypot(prova.x - shuaib.x, prova.y - shuaib.y) < 45) {
             score += 10; scoreEl.innerText = score;
             shuaib.x = Math.random() * (canvas.width - charSize);
             shuaib.y = Math.random() * (canvas.height - charSize);
-            twinkleTimer = 40; // Start Twinkle
-            if(score % 50 === 0) { level++; lvlEl.innerText = level; shuaib.vx *= 1.2; }
+            twinkleTimer = 40;
+            if(score % 50 === 0) { level++; lvlEl.innerText = level; shuaib.vx *= 1.1; }
         }
 
         kitties.forEach((k, i) => {
             k.life--;
-            if(Math.hypot(prova.x - k.x, prova.y - k.y) < 55) {
+            if(Math.hypot(prova.x - k.x, prova.y - k.y) < 40) {
                 gameActive = false;
                 document.getElementById('overlay').style.display = 'flex';
                 document.getElementById('msg').innerText = "Game Over 😿";
-                document.getElementById('sub-msg').innerText = "A kitty stole the Discone!\nFinal Score: " + score;
+                document.getElementById('sub-msg').innerText = "Final Score: " + score;
             }
             if(k.life <= 0) kitties.splice(i, 1);
         });
@@ -199,7 +201,7 @@
 
         if(twinkleTimer > 0) {
             const pulse = 1 + Math.sin(twinkleTimer * 0.5) * 0.2;
-            const size = 120 * pulse;
+            const size = 100 * pulse;
             ctx.globalAlpha = twinkleTimer / 40;
             ctx.drawImage(iceCreamImg, canvas.width/2 - size/2, canvas.height/2 - size/2, size, size);
             ctx.globalAlpha = 1.0;
